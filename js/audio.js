@@ -28,6 +28,14 @@ class SoundEngine {
         
         this.filter.connect(this.masterGain);
         this.masterGain.connect(this.ctx.destination);
+        
+        // Create Noise Buffer for Percussion
+        const bufferSize = this.ctx.sampleRate * 2;
+        this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const output = this.noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
@@ -260,6 +268,31 @@ class SoundEngine {
         gainBass.connect(this.filter);
         oscBass.start(now);
         oscBass.stop(now + (0.58 * speedMult));
+      }
+
+      // Channel 3: Dynamic Percussion (only when Combo >= 4)
+      // Pass game combo via global variable or assume game.combo is accessible (window.game)
+      // Since AudioEngine doesn't have direct ref to game, let's just check window.game
+      if (window.game && window.game.combo >= 4) {
+        // Play hi-hat on every step, and snare on every 2nd step
+        const isSnare = (this.bgmStep % 2 === 0);
+        
+        const noiseSrc = this.ctx.createBufferSource();
+        noiseSrc.buffer = this.noiseBuffer;
+        
+        const noiseFilter = this.ctx.createBiquadFilter();
+        noiseFilter.type = isSnare ? 'bandpass' : 'highpass';
+        noiseFilter.frequency.value = isSnare ? 1000 : 5000;
+        
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(isSnare ? 0.3 : 0.1, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + (isSnare ? 0.2 : 0.05));
+        
+        noiseSrc.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(this.masterGain);
+        
+        noiseSrc.start(now);
       }
 
       this.bgmStep++;

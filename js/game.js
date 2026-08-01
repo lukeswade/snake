@@ -81,6 +81,9 @@ class GameEngine {
     this.surgeMeter = 0;
     this.isSurging = false;
     this.isPaused = false;
+    this.isSurging = false;
+    this.surgeDuration = 0;
+    this.hitStopFrames = 0;
     this.isRunning = true;
     this.shakeTime = 0;
 
@@ -137,9 +140,10 @@ class GameEngine {
       if (this.mode === 'surge' && Math.random() > 0.90) {
         const powerUps = ['magnet', 'ghost', 'slowmo'];
         type = powerUps[Math.floor(Math.random() * powerUps.length)];
-        tier = 1; // Power-ups are visually tier 1 but distinct colors
+        tier = 1;
       } else if (this.mode === 'surge') {
-        if (typeRand > 0.85) { tier = 3; type = 'gold'; }
+        if (typeRand > 0.95) { tier = 3; type = 'runner'; }
+        else if (typeRand > 0.85) { tier = 3; type = 'gold'; }
         else if (typeRand > 0.60) { tier = 2; type = 'tier2'; }
       }
 
@@ -168,16 +172,21 @@ class GameEngine {
     }
   }
 
+  hitStop(frames = 3) {
+    this.hitStopFrames = frames;
+  }
+
   triggerSurge() {
     if (this.surgeMeter >= 100 && !this.isSurging) {
       this.isSurging = true;
-      this.surgeDuration = 50; // ticks
-      this.snake.isSurging = true;
+      this.surgeDuration = 100;
       this.surgeMeter = 0;
-      audio.playSurge();
-      this.triggerShake(10, 8);
+      this.snake.isSurging = true;
+      this.hitStop(5); // Major impact!
+      audio.setSurgeFilter(true);
       storage.updateStats({ surgesActivated: 1 });
-      return true;
+      this.addFloatingText("SURGE!", (this.snake.getHead().x + 0.5) * this.cellSize, this.snake.getHead().y * this.cellSize, '#ff007f');
+      this.triggerShake(5, 5);
     }
     return false;
   }
@@ -202,6 +211,13 @@ class GameEngine {
   gameLoop(timestamp) {
     if (!this.isRunning) return;
 
+    if (this.hitStopFrames > 0) {
+      this.hitStopFrames--;
+      this.lastStepTime = timestamp; // Prevent delta accumulation during freeze
+      requestAnimationFrame(this.gameLoop.bind(this));
+      return;
+    }
+
     let lerpFactor = 1.0;
 
     if (!this.isPaused && !this.isRewinding) {
@@ -220,6 +236,13 @@ class GameEngine {
       }
     }
 
+    // Toggle Fever Mode CSS class on Canvas
+    if (this.combo >= 8) {
+      this.canvas.classList.add('fever-active');
+    } else {
+      this.canvas.classList.remove('fever-active');
+    }
+
     this.render(lerpFactor);
     requestAnimationFrame((t) => this.gameLoop(t));
   }
@@ -233,7 +256,23 @@ class GameEngine {
       }
     }
 
-    // Save state to history buffer for Chrono-Surge Rewind (max 40 ticks = ~4 seconds)
+    const head = this.snake.getHead();
+
+    // Scaredy 'Runner' Food AI
+    this.foodList.forEach(f => {
+      if (f.type === 'runner') {
+        const dx = f.x - head.x;
+        const dy = f.y - head.y;
+        if (Math.abs(dx) <= 3 && Math.abs(dy) <= 3) {
+          f.x += Math.sign(dx) || (Math.random() > 0.5 ? 1 : -1);
+          f.y += Math.sign(dy) || (Math.random() > 0.5 ? 1 : -1);
+          f.x = Math.max(1, Math.min(this.cols - 2, f.x));
+          f.y = Math.max(1, Math.min(this.rows - 2, f.y));
+        }
+      }
+    });
+
+    // Update Buff Timerstate to history buffer for Chrono-Surge Rewind (max 40 ticks = ~4 seconds)
     if (this.snake && this.mode !== 'pvp') { // Chrono-Surge disabled in PvP
       this.historyBuffer.push({
         snake: JSON.parse(JSON.stringify(this.snake.segments)),
@@ -330,19 +369,40 @@ class GameEngine {
           this.buffs[food.type] = 100; // 100 ticks duration
           this.addFloatingText(`${food.type.toUpperCase()}!`, (head.x + 0.5) * this.cellSize, head.y * this.cellSize, '#00f0ff', 60);
           this.snake.spawnParticles((head.x + 0.5) * this.cellSize, (head.y + 0.5) * this.cellSize, '#00f0ff', 15);
+          this.hitStop(3);
         } else {
           this.snake.grow(food.tier);
-          const pts = 10 * food.tier * this.combo;
+          let pts = 10 * food.tier * this.combo;
+          
+          if (food.type === 'runner') {
+            pts += 500;
+            this.surgeMeter = Math.min(100, this.surgeMeter + 25);
+            this.hitStop(5);
+            this.addFloatingText(`CAUGHT!`, (head.x + 0.5) * this.cellSize, (head.y - 1) * this.cellSize, '#9d00ff');
+          } else if (food.type === 'gold') {
+            this.hitStop(3);
+          }
+
+          if (this.combo >= 8) pts *= 2; // Fever mode double points!
+          
           this.score += pts;
           this.surgeMeter = Math.min(100, this.surgeMeter + (15 * food.tier));
 
           // Combo increment
           this.combo = Math.min(8, this.combo + 1);
           if (this.comboTimer) clearTimeout(this.comboTimer);
-          this.comboTimer = setTimeout(() => { this.combo = 1; }, 3000);
+          // Tighter combo window if in fever mode
+          this.comboTimer = setTimeout(() => { this.combo = 1; }, this.combo >= 8 ? 2000 : 3000);
 
-          this.snake.spawnParticles((head.x + 0.5) * this.cellSize, (head.y + 0.5) * this.cellSize, TIER_COLORS[food.tier - 1], 10);
-          this.addFloatingText(`+${pts}`, (head.x + 0.5) * this.cellSize, head.y * this.cellSize, TIER_COLORS[food.tier - 1]);
+          if (this.combo >= 8) {
+            // Confetti explosion!
+            this.snake.spawnParticles((head.x + 0.5) * this.cellSize, (head.y + 0.5) * this.cellSize, '#ff0000', 5);
+            this.snake.spawnParticles((head.x + 0.5) * this.cellSize, (head.y + 0.5) * this.cellSize, '#00ff00', 5);
+            this.snake.spawnParticles((head.x + 0.5) * this.cellSize, (head.y + 0.5) * this.cellSize, '#0000ff', 5);
+          } else {
+            this.snake.spawnParticles((head.x + 0.5) * this.cellSize, (head.y + 0.5) * this.cellSize, TIER_COLORS[food.tier - 1], 10);
+          }
+          this.addFloatingText(`+${pts}`, (head.x + 0.5) * this.cellSize, head.y * this.cellSize, this.combo >= 8 ? '#ffffff' : TIER_COLORS[food.tier - 1]);
         }
 
         this.foodList.splice(i, 1);
@@ -453,6 +513,14 @@ class GameEngine {
         this.ctx.lineTo(px + this.cellSize / 2, py + this.cellSize - 2);
         this.ctx.lineTo(px + 2, py + this.cellSize / 2);
         this.ctx.fill();
+      } else if (f.type === 'runner') {
+        this.ctx.fillStyle = '#9d00ff';
+        this.ctx.shadowColor = '#9d00ff';
+        this.ctx.shadowBlur = 20;
+        this.ctx.beginPath();
+        // Draw a star shape for the runner
+        this.ctx.arc(px + this.cellSize / 2, py + this.cellSize / 2, (this.cellSize / 2) - 1, 0, Math.PI * 2);
+        this.ctx.fill();
       } else {
         const color = f.type === 'gold' ? '#ffd700' : (f.tier === 2 ? '#39ff14' : '#ff007f');
         this.ctx.fillStyle = color;
@@ -468,8 +536,12 @@ class GameEngine {
 
     // Draw Player Snake
     if (this.snake) {
-      if (this.buffs.ghost > 0) this.ctx.globalAlpha = 0.5; // Ghost visual effect
-      this.snake.draw(this.ctx, this.cellSize, isNokia, lerpFactor);
+      if (this.buffs.ghost > 0) this.ctx.globalAlpha = 0.5;
+      
+      // Override colors for Fever Mode
+      const isFever = this.combo >= 8;
+      this.snake.draw(this.ctx, this.cellSize, isNokia, lerpFactor, isFever);
+      
       this.ctx.globalAlpha = 1.0;
     }
 
@@ -543,6 +615,7 @@ class GameEngine {
     this.surgeMeter -= 50;
     storage.updateStats({ surgesActivated: 1 });
     audio.setMood('mario');
+    this.hitStop(10); // Massive hit stop on rewind trigger
 
     // Visual effect state
     let rewindingSteps = this.historyBuffer.length;
