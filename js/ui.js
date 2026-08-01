@@ -16,12 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const startOverlay = document.getElementById('start-overlay');
   const gameOverOverlay = document.getElementById('game-over-overlay');
   const pauseOverlay = document.getElementById('pause-overlay');
+  const rewindOverlay = document.getElementById('rewind-overlay');
   const achievementsModal = document.getElementById('achievements-modal');
 
   const btnStart = document.getElementById('btn-start');
   const btnRestart = document.getElementById('btn-restart');
   const btnPause = document.getElementById('btn-pause');
   const btnResume = document.getElementById('btn-resume');
+  const btnRewind = document.getElementById('btn-rewind');
+  const btnSkipRewind = document.getElementById('btn-skip-rewind');
   const btnMute = document.getElementById('btn-mute');
   const btnBgm = document.getElementById('btn-bgm');
   const btnTheme = document.getElementById('btn-theme');
@@ -66,9 +69,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4000);
   }
 
+  // Start & Restart Game
+  function startGame() {
+    if (startOverlay) startOverlay.classList.remove('active');
+    if (gameOverOverlay) gameOverOverlay.classList.remove('active');
+    if (pauseOverlay) pauseOverlay.classList.remove('active');
+    audio.playClick();
+    game.start(game.mode);
+  }
+
+  // Tap anywhere to start
+  startOverlay?.addEventListener('click', (e) => {
+    // Don't start if they clicked the mode selector or theme buttons
+    if (e.target.closest('.mode-selector') || e.target.closest('.nav-actions')) return;
+    startGame();
+  });
+
   // Input Handling: Keyboard Controls
   window.addEventListener('keydown', (e) => {
-    if (!game.isRunning) return;
+    // Handle keyboard quick-start if on start or game over screen
+    if (!game.isRunning) {
+      if (['Enter', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
+        e.preventDefault();
+        startGame();
+      }
+      return;
+    }
 
     audio.init();
 
@@ -101,6 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'P':
       case 'Escape':
         togglePause();
+        break;
+      case 'r':
+      case 'R':
+        if (rewindOverlay && rewindOverlay.classList.contains('active')) {
+          audio.playClick();
+          game.triggerRewind();
+        }
         break;
     }
   });
@@ -194,15 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 100);
 
-  // Start & Restart Game
-  const startGame = () => {
-    startOverlay.classList.remove('active');
-    gameOverOverlay.classList.remove('active');
-    pauseOverlay.classList.remove('active');
-    audio.playClick();
-    game.start(game.mode);
-  };
-
   btnStart?.addEventListener('click', startGame);
   btnRestart?.addEventListener('click', startGame);
 
@@ -219,6 +243,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnPause?.addEventListener('click', togglePause);
   btnResume?.addEventListener('click', togglePause);
+
+  // Rewind Controls
+  game.onRewindPrompt = () => {
+    rewindOverlay.classList.add('active');
+    audio.playDie(); // Initial crash sound
+  };
+
+  game.onRewindComplete = () => {
+    rewindOverlay.classList.remove('active');
+  };
+
+  btnRewind?.addEventListener('click', () => {
+    if (rewindOverlay.classList.contains('active')) {
+      audio.playClick();
+      game.triggerRewind();
+    }
+  });
+
+  btnSkipRewind?.addEventListener('click', () => {
+    rewindOverlay.classList.remove('active');
+    game.isPaused = false;
+    game.endGame(false); // Force full death
+  });
 
   // Mute & BGM Controls
   btnMute?.addEventListener('click', () => {

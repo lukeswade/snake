@@ -28,6 +28,10 @@ class GameEngine {
     this.obstacles = [];
     this.buffs = { magnet: 0, ghost: 0, slowmo: 0 };
     
+    // Chrono-Surge History Tracking
+    this.historyBuffer = [];
+    this.isRewinding = false;
+    
     this.pvpTimeRemaining = 60;
     this.pvpTimer = null;
 
@@ -86,7 +90,9 @@ class GameEngine {
     this.foodList = [];
     this.floatingTexts = [];
     this.obstacles = [];
-    this.buffs = { magnet: 0, ghost: 0, slowmo: 0 };
+    this.buffs = { magnet: 0, ghost: 20, slowmo: 0 }; // 2-second invulnerability grace period
+    this.historyBuffer = [];
+    this.isRewinding = false;
     
     // Spawn static obstacles
     this.spawnObstacles(8);
@@ -198,7 +204,7 @@ class GameEngine {
 
     let lerpFactor = 1.0;
 
-    if (!this.isPaused) {
+    if (!this.isPaused && !this.isRewinding) {
       const delta = timestamp - this.lastStepTime;
       let speedMult = this.isSurging ? 0.5 : 1.0;
       if (this.buffs.slowmo > 0) speedMult *= 1.8; // Slow down game loop
@@ -224,6 +230,22 @@ class GameEngine {
       if (this.surgeDuration <= 0) {
         this.isSurging = false;
         this.snake.isSurging = false;
+      }
+    }
+
+    // Save state to history buffer for Chrono-Surge Rewind (max 40 ticks = ~4 seconds)
+    if (this.snake && this.mode !== 'pvp') { // Chrono-Surge disabled in PvP
+      this.historyBuffer.push({
+        snake: JSON.parse(JSON.stringify(this.snake.segments)),
+        snakeDir: { ...this.snake.direction },
+        score: this.score,
+        combo: this.combo,
+        surgeMeter: this.surgeMeter,
+        foodList: JSON.parse(JSON.stringify(this.foodList)),
+        buffs: { ...this.buffs }
+      });
+      if (this.historyBuffer.length > 40) {
+        this.historyBuffer.shift();
       }
     }
 
@@ -481,6 +503,16 @@ class GameEngine {
   }
 
   endGame(isWin = false) {
+    // CHRONO-SURGE DEATH INTERCEPT
+    // If the player died but has >= 50 surge meter, offer a rewind!
+    if (!isWin && this.mode !== 'pvp' && this.surgeMeter >= 50 && this.historyBuffer.length > 10) {
+      this.isPaused = true;
+      if (this.onRewindPrompt) {
+        this.onRewindPrompt();
+        return; // Halt normal game over
+      }
+    }
+
     this.isRunning = false;
     if (this.pvpTimer) clearInterval(this.pvpTimer);
 
@@ -501,5 +533,59 @@ class GameEngine {
         isWin: isWin
       });
     }
+  }
+
+  triggerRewind() {
+    if (this.isRewinding || this.historyBuffer.length === 0 || this.surgeMeter < 50) return;
+    
+    this.isRewinding = true;
+    this.isPaused = true;
+    this.surgeMeter -= 50;
+    storage.updateStats({ surgesActivated: 1 });
+    audio.setMood('mario');
+
+    // Visual effect state
+    let rewindingSteps = this.historyBuffer.length;
+    
+    // Initial vomit text
+    const head = this.snake.getHead();
+    this.addFloatingText("BLEUGH!!", (head.x + 0.5) * this.cellSize, head.y * this.cellSize, '#39ff14', 100);
+    
+    const rewindInterval = setInterval(() => {
+      if (rewindingSteps <= 0) {
+        clearInterval(rewindInterval);
+        this.isRewinding = false;
+        this.isPaused = false;
+        this.buffs.ghost = 20; // Give a brief invulnerability window after rewinding
+        this.lastStepTime = performance.now();
+        
+        // Hide the prompt
+        if (this.onRewindComplete) this.onRewindComplete();
+        return;
+      }
+
+      // Pop state from buffer
+      const state = this.historyBuffer.pop();
+      this.snake.segments = state.snake;
+      this.snake.direction = state.snakeDir;
+      this.snake.nextDirection = state.snakeDir;
+      this.score = state.score;
+      this.combo = state.combo;
+      this.surgeMeter = state.surgeMeter;
+      this.foodList = state.foodList;
+      
+      // Vomiting visual effect: spawn green/yellow particles from the retreating head
+      const currentHead = this.snake.getHead();
+      if (currentHead) {
+        this.snake.spawnParticles((currentHead.x + 0.5) * this.cellSize, (currentHead.y + 0.5) * this.cellSize, '#39ff14', 3);
+        this.snake.spawnParticles((currentHead.x + 0.5) * this.cellSize, (currentHead.y + 0.5) * this.cellSize, '#ffd700', 2);
+      }
+      
+      // We don't restore buffs because we want to guarantee the 2-second ghost after rewind finishes
+      
+      rewindingSteps--;
+      this.render(0.0); // Render exactly the state without lerp
+      this.triggerShake(2, 2); // Subtle shaking during rewind
+    }, 30); // Rewind fast!
   }
 }
