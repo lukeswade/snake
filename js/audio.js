@@ -241,11 +241,11 @@ class SoundEngine {
       const leadFreq = leadPattern[this.bgmStep % leadPattern.length];
       oscLead.frequency.setValueAtTime(leadFreq, now);
       gainLead.gain.setValueAtTime(isBowser ? 0.06 : 0.04, now);
-      gainLead.gain.exponentialRampToValueAtTime(0.001, now + (0.24 * speedMult));
+      gainLead.gain.exponentialRampToValueAtTime(0.001, now + (0.31 * speedMult));
       oscLead.connect(gainLead);
       gainLead.connect(this.filter);
       oscLead.start(now);
-      oscLead.stop(now + (0.24 * speedMult));
+      oscLead.stop(now + (0.31 * speedMult));
 
       // Channel 2: Sub Bass (every 2nd step)
       if (this.bgmStep % 2 === 0) {
@@ -259,11 +259,11 @@ class SoundEngine {
         oscBass.connect(gainBass);
         gainBass.connect(this.filter);
         oscBass.start(now);
-        oscBass.stop(now + (0.45 * speedMult));
+        oscBass.stop(now + (0.58 * speedMult));
       }
 
       this.bgmStep++;
-    }, 240);
+    }, 312);
   }
 
   stopBGM() {

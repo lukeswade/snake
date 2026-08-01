@@ -25,6 +25,9 @@ class GameEngine {
     this.isSurging = false;
     this.surgeDuration = 0;
     
+    this.obstacles = [];
+    this.buffs = { magnet: 0, ghost: 0, slowmo: 0 };
+    
     this.pvpTimeRemaining = 60;
     this.pvpTimer = null;
 
@@ -82,6 +85,11 @@ class GameEngine {
 
     this.foodList = [];
     this.floatingTexts = [];
+    this.obstacles = [];
+    this.buffs = { magnet: 0, ghost: 0, slowmo: 0 };
+    
+    // Spawn static obstacles
+    this.spawnObstacles(8);
     this.spawnFood(4);
 
     this.aiSnakes = [];
@@ -119,12 +127,38 @@ class GameEngine {
       let tier = 1;
       let type = 'normal';
 
-      if (this.mode === 'surge') {
+      // 10% chance for a power-up in surge mode
+      if (this.mode === 'surge' && Math.random() > 0.90) {
+        const powerUps = ['magnet', 'ghost', 'slowmo'];
+        type = powerUps[Math.floor(Math.random() * powerUps.length)];
+        tier = 1; // Power-ups are visually tier 1 but distinct colors
+      } else if (this.mode === 'surge') {
         if (typeRand > 0.85) { tier = 3; type = 'gold'; }
         else if (typeRand > 0.60) { tier = 2; type = 'tier2'; }
       }
 
       this.foodList.push({ x, y, tier, type });
+    }
+  }
+
+  spawnObstacles(count = 5) {
+    for (let i = 0; i < count; i++) {
+      let x, y, isValid = false;
+      let attempts = 0;
+      while (!isValid && attempts < 50) {
+        x = Math.floor(Math.random() * this.cols);
+        y = Math.floor(Math.random() * this.rows);
+        
+        // Avoid player spawn (center) and edges
+        const distToCenter = Math.abs(x - this.cols/2) + Math.abs(y - this.rows/2);
+        const onSnake = this.snake.segments.some(s => s.x === x && s.y === y);
+        
+        if (distToCenter > 4 && !onSnake && x > 0 && x < this.cols-1 && y > 0 && y < this.rows-1) {
+          isValid = true;
+          this.obstacles.push({ x, y });
+        }
+        attempts++;
+      }
     }
   }
 
@@ -166,7 +200,9 @@ class GameEngine {
 
     if (!this.isPaused) {
       const delta = timestamp - this.lastStepTime;
-      const speedMult = this.isSurging ? 0.5 : 1.0;
+      let speedMult = this.isSurging ? 0.5 : 1.0;
+      if (this.buffs.slowmo > 0) speedMult *= 1.8; // Slow down game loop
+
       const currentInterval = Math.max(50, (this.stepInterval - Math.floor(this.score / 50) * 3) * speedMult);
 
       lerpFactor = Math.min(1.0, delta / currentInterval);
@@ -191,8 +227,14 @@ class GameEngine {
       }
     }
 
-    // Move player snake
-    this.snake.move(this.cols, this.rows, this.mode !== 'pvp');
+    // Update Buff Timers
+    if (this.buffs.magnet > 0) this.buffs.magnet--;
+    if (this.buffs.ghost > 0) this.buffs.ghost--;
+    if (this.buffs.slowmo > 0) this.buffs.slowmo--;
+
+    // Move player snake (allow edge wrap if Ghost is active)
+    const canWrapEdges = this.mode !== 'pvp' || this.buffs.ghost > 0;
+    this.snake.move(this.cols, this.rows, canWrapEdges);
 
     // Dynamic Reactive Music Mood
     let mood = 'mario'; // Default bright
@@ -220,7 +262,7 @@ class GameEngine {
     const head = this.snake.getHead();
 
     // Check Wall Crash (in Classic Mode)
-    if (this.mode === 'classic' && !this.isSurging) {
+    if (this.mode === 'classic' && !this.isSurging && this.buffs.ghost <= 0) {
       if (head.x < 0 || head.x >= this.cols || head.y < 0 || head.y >= this.rows) {
         audio.playDie();
         this.endGame(false);
@@ -228,8 +270,18 @@ class GameEngine {
       }
     }
 
+    // Check Obstacle Crash
+    if (!this.isSurging && this.buffs.ghost <= 0) {
+      const hitObstacle = this.obstacles.some(o => o.x === head.x && o.y === head.y);
+      if (hitObstacle) {
+        audio.playDie();
+        this.endGame(false);
+        return;
+      }
+    }
+
     // Check Self Collision
-    if (!this.isSurging && this.snake.checkSelfCollision()) {
+    if (!this.isSurging && this.buffs.ghost <= 0 && this.snake.checkSelfCollision()) {
       audio.playDie();
       this.endGame(false);
       return;
@@ -238,25 +290,41 @@ class GameEngine {
     // Check Food Eating
     for (let i = this.foodList.length - 1; i >= 0; i--) {
       const food = this.foodList[i];
+      
+      // Magnet Powerup Effect: Pull food towards head
+      if (this.buffs.magnet > 0) {
+        const dx = head.x - food.x;
+        const dy = head.y - food.y;
+        if (Math.abs(dx) <= 4 && Math.abs(dy) <= 4) {
+          food.x += Math.sign(dx);
+          food.y += Math.sign(dy);
+        }
+      }
+
       if (head.x === food.x && head.y === food.y) {
         audio.playEat(food.tier);
-        this.snake.grow(food.tier);
-        this.foodList.splice(i, 1);
-
-        const pts = 10 * food.tier * this.combo;
-        this.score += pts;
-        this.surgeMeter = Math.min(100, this.surgeMeter + (15 * food.tier));
-
-        // Combo increment
-        this.combo = Math.min(8, this.combo + 1);
-        if (this.comboTimer) clearTimeout(this.comboTimer);
-        this.comboTimer = setTimeout(() => { this.combo = 1; }, 3000);
-
-        this.snake.spawnParticles((head.x + 0.5) * this.cellSize, (head.y + 0.5) * this.cellSize, TIER_COLORS[food.tier - 1], 10);
-        this.addFloatingText(`+${pts}`, (head.x + 0.5) * this.cellSize, head.y * this.cellSize, TIER_COLORS[food.tier - 1]);
         
-        this.spawnFood(1);
+        if (['magnet', 'ghost', 'slowmo'].includes(food.type)) {
+          this.buffs[food.type] = 100; // 100 ticks duration
+          this.addFloatingText(`${food.type.toUpperCase()}!`, (head.x + 0.5) * this.cellSize, head.y * this.cellSize, '#00f0ff', 60);
+          this.snake.spawnParticles((head.x + 0.5) * this.cellSize, (head.y + 0.5) * this.cellSize, '#00f0ff', 15);
+        } else {
+          this.snake.grow(food.tier);
+          const pts = 10 * food.tier * this.combo;
+          this.score += pts;
+          this.surgeMeter = Math.min(100, this.surgeMeter + (15 * food.tier));
 
+          // Combo increment
+          this.combo = Math.min(8, this.combo + 1);
+          if (this.comboTimer) clearTimeout(this.comboTimer);
+          this.comboTimer = setTimeout(() => { this.combo = 1; }, 3000);
+
+          this.snake.spawnParticles((head.x + 0.5) * this.cellSize, (head.y + 0.5) * this.cellSize, TIER_COLORS[food.tier - 1], 10);
+          this.addFloatingText(`+${pts}`, (head.x + 0.5) * this.cellSize, head.y * this.cellSize, TIER_COLORS[food.tier - 1]);
+        }
+
+        this.foodList.splice(i, 1);
+        this.spawnFood(1);
         storage.updateStats({ foodEaten: 1, maxCombo: this.combo });
       }
     }
@@ -278,6 +346,7 @@ class GameEngine {
     // Update AI Opponents (PvP Mode)
     if (this.mode === 'pvp') {
       const allObstacles = [
+        ...this.obstacles,
         ...this.snake.segments,
         ...this.aiSnakes.flatMap(a => a.segments)
       ];
@@ -333,6 +402,15 @@ class GameEngine {
       this.ctx.stroke();
     }
 
+    // Draw Obstacles
+    this.ctx.fillStyle = isNokia ? '#0f380f' : 'rgba(255, 255, 255, 0.2)';
+    this.ctx.shadowBlur = 0;
+    this.obstacles.forEach(obs => {
+      this.ctx.beginPath();
+      this.ctx.roundRect(obs.x * this.cellSize + 1, obs.y * this.cellSize + 1, this.cellSize - 2, this.cellSize - 2, 4);
+      this.ctx.fill();
+    });
+
     // Draw Food
     this.foodList.forEach(f => {
       const px = f.x * this.cellSize;
@@ -342,6 +420,17 @@ class GameEngine {
       if (isNokia) {
         this.ctx.fillStyle = '#0f380f';
         this.ctx.fillRect(px + 4, py + 4, this.cellSize - 8, this.cellSize - 8);
+      } else if (['magnet', 'ghost', 'slowmo'].includes(f.type)) {
+        this.ctx.fillStyle = '#00f0ff';
+        this.ctx.shadowColor = '#00f0ff';
+        this.ctx.shadowBlur = 15;
+        this.ctx.beginPath();
+        // Draw a diamond for powerups
+        this.ctx.moveTo(px + this.cellSize / 2, py + 2);
+        this.ctx.lineTo(px + this.cellSize - 2, py + this.cellSize / 2);
+        this.ctx.lineTo(px + this.cellSize / 2, py + this.cellSize - 2);
+        this.ctx.lineTo(px + 2, py + this.cellSize / 2);
+        this.ctx.fill();
       } else {
         const color = f.type === 'gold' ? '#ffd700' : (f.tier === 2 ? '#39ff14' : '#ff007f');
         this.ctx.fillStyle = color;
@@ -357,7 +446,9 @@ class GameEngine {
 
     // Draw Player Snake
     if (this.snake) {
+      if (this.buffs.ghost > 0) this.ctx.globalAlpha = 0.5; // Ghost visual effect
       this.snake.draw(this.ctx, this.cellSize, isNokia, lerpFactor);
+      this.ctx.globalAlpha = 1.0;
     }
 
     // Draw AI Snakes
