@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cyber">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Snake Surge - Viral Retro Arcade Game</title>
+  <meta name="description" content="Merge snakes, collect food, trigger hyper surges, and conquer the leaderboard in Snake Surge - the ultimate addictive retro-modern web arcade game!">
+  <meta name="theme-color" content="#0a0c16">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Ambient Animated Background -->
+  <div class="bg-ambient">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- Application Container -->
+  <div id="app-container">
+
+    <!-- Header Navigation -->
+    <header>
+      <div class="logo-group">
+        <div class="logo-icon">🐍</div>
+        <h1 class="logo-title">
+          SNAKE SURGE
+          <span class="badge">SURGE v2.0</span>
+        </h1>
+      </div>
+
+      <div class="nav-actions">
+        <button id="btn-theme" class="btn-icon" title="Switch Theme (Cyber / Nokia 3310 / OLED)">🎨</button>
+        <button id="btn-bgm" class="btn-icon" title="Toggle Synth BGM">🎵</button>
+        <button id="btn-mute" class="btn-icon" title="Toggle Mute Sound">🔊</button>
+        <button id="btn-pause" class="btn-icon" title="Pause Game">⏸️</button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main>
+
+      <!-- Game Viewport -->
+      <section class="game-viewport" id="game-viewport">
+
+        <!-- Top HUD Overlay -->
+        <div class="hud-overlay">
+          <div class="hud-card">
+            <span class="hud-label">Score</span>
+            <span class="hud-value" id="score-val">0</span>
+          </div>
+
+          <div class="hud-card">
+            <span class="hud-label">Best</span>
+            <span class="hud-value" id="high-val" style="color: var(--accent-gold);">0</span>
+          </div>
+
+          <div class="surge-meter-wrapper">
+            <span class="hud-label" style="display: flex; justify-space-between;">
+              SURGE POWER
+              <span id="combo-val" style="color: var(--accent-lime); font-weight: 800;">1x</span>
+            </span>
+            <div class="surge-bar-bg">
+              <div class="surge-bar-fill" id="surge-fill"></div>
+            </div>
+          </div>
+
+          <div class="hud-card" id="pvp-timer-box" style="display: none;">
+            <span class="hud-label">PVP TIME</span>
+            <span class="hud-value" id="pvp-timer-val" style="color: var(--accent-magenta);">60s</span>
+          </div>
+        </div>
+
+        <!-- HTML5 Canvas -->
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Mobile Touch Controls -->
+        <div class="mobile-controls">
+          <div class="d-pad" id="joystick-base">
+            <div class="joystick-knob" id="joystick-knob"></div>
+          </div>
+          <button class="surge-touch-btn" id="btn-surge-touch">SURGE⚡</button>
+        </div>
+
+        <!-- Start Overlay Screen -->
+        <div class="overlay-screen active" id="start-overlay">
+          <div class="overlay-card">
+            <h2 class="overlay-title">SNAKE SURGE</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">
+              Merge segments, trigger hyper-surges, and collect high scores in the ultimate retro-modern arcade experience.
+            </p>
+
+            <button class="btn-primary" id="btn-start">
+              <span>PLAY NOW</span> ➔
+            </button>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">Controls: WASD / Arrow Keys | Spacebar to Surge</p>
+          </div>
+        </div>
+
+        <!-- Game Over Overlay Screen -->
+        <div class="overlay-screen" id="game-over-overlay">
+          <div class="overlay-card">
+            <h2 class="overlay-title" style="color: var(--accent-magenta);">GAME OVER</h2>
+
+            <div style="display: flex; gap: 20px; margin: 10px 0;">
+              <div>
+                <span class="hud-label">FINAL SCORE</span>
+                <div style="font-size: 2.2rem; font-weight: 900; color: var(--accent-cyan);" id="final-score-val">0</div>
+              </div>
+              <div>
+                <span class="hud-label">HIGH SCORE</span>
+                <div style="font-size: 2.2rem; font-weight: 900; color: var(--accent-gold);" id="final-high-val">0</div>
+              </div>
+            </div>
+
+            <span id="new-high-badge" class="badge" style="background: var(--accent-gold); color: #000; display: none; padding: 6px 14px; font-weight: 800;">🏆 NEW HIGH SCORE!</span>
+
+            <div style="display: flex; gap: 10px; width: 100%;">
+              <button class="btn-secondary" id="btn-share-card">📸 Download Stat Card</button>
+              <button class="btn-secondary" id="btn-share-text">📋 Copy Share Link</button>
+            </div>
+
+            <button class="btn-primary" id="btn-restart">
+              <span>PLAY AGAIN</span> ↺
+            </button>
+          </div>
+        </div>
+
+        <!-- Pause Overlay Screen -->
+        <div class="overlay-screen" id="pause-overlay">
+          <div class="overlay-card">
+            <h2 class="overlay-title">GAME PAUSED</h2>
+            <button class="btn-primary" id="btn-resume">RESUME GAME</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Sidebar Info & Controls Panel -->
+      <aside class="sidebar-panel">
+
+        <div>
+          <span class="panel-section-title">🎮 SELECT GAME MODE</span>
+          <div class="mode-selector" style="margin-top: 10px;">
+            <button class="mode-btn active" data-mode="surge">
+              <div>
+                <div class="mode-name">⚡ Merge & Surge</div>
+                <div class="mode-desc">Merge 3 segments & trigger hyper surges</div>
+              </div>
+            </button>
+
+            <button class="mode-btn" data-mode="classic">
+              <div>
+                <div class="mode-name">🐍 Classic Survival</div>
+                <div class="mode-desc">Pure Nokia 3310 high score survival</div>
+              </div>
+            </button>
+
+            <button class="mode-btn" data-mode="pvp">
+              <div>
+                <div class="mode-name">⚔️ 60s PvP Blitz</div>
+                <div class="mode-desc">Compete live against 2 AI snakes</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--border-glass);">
+
+        <div>
+          <span class="panel-section-title">📊 CAREER STATS</span>
+          <div class="stats-grid" style="margin-top: 10px;">
+            <div class="stat-item">
+              <span class="stat-val" id="stat-food">0</span>
+              <span class="stat-lbl">Food Eaten</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val" id="stat-merges">0</span>
+              <span class="stat-lbl">Total Merges</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val" id="stat-surges">0</span>
+              <span class="stat-lbl">Surges Used</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val" id="stat-wins">0</span>
+              <span class="stat-lbl">PvP Victories</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </main>
+
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- JavaScript Modules -->
+  <script src="js/audio.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/snake.js"></script>
+  <script src="js/aiSnake.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/cardGenerator.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

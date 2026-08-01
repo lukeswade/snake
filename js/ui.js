@@ -1,0 +1,285 @@
+/* ==========================================================================
+   UI CONTROLLER & EVENT BINDINGS
+   ========================================================================== */
+
+document.addEventListener('DOMContentLoaded', () => {
+  const game = new GameEngine('game-canvas');
+
+  // DOM Element References
+  const scoreVal = document.getElementById('score-val');
+  const highVal = document.getElementById('high-val');
+  const comboVal = document.getElementById('combo-val');
+  const surgeFill = document.getElementById('surge-fill');
+  const pvpTimerBox = document.getElementById('pvp-timer-box');
+  const pvpTimerVal = document.getElementById('pvp-timer-val');
+
+  const startOverlay = document.getElementById('start-overlay');
+  const gameOverOverlay = document.getElementById('game-over-overlay');
+  const pauseOverlay = document.getElementById('pause-overlay');
+  const achievementsModal = document.getElementById('achievements-modal');
+
+  const btnStart = document.getElementById('btn-start');
+  const btnRestart = document.getElementById('btn-restart');
+  const btnPause = document.getElementById('btn-pause');
+  const btnResume = document.getElementById('btn-resume');
+  const btnMute = document.getElementById('btn-mute');
+  const btnBgm = document.getElementById('btn-bgm');
+  const btnTheme = document.getElementById('btn-theme');
+  const btnShareCard = document.getElementById('btn-share-card');
+  const btnShareText = document.getElementById('btn-share-text');
+  const btnSurgeTouch = document.getElementById('btn-surge-touch');
+
+  const finalScoreVal = document.getElementById('final-score-val');
+  const finalHighVal = document.getElementById('final-high-val');
+  const finalMergesVal = document.getElementById('final-merges-val');
+  const newHighBadge = document.getElementById('new-high-badge');
+
+  // Apply Stored Theme
+  const currentTheme = storage.getTheme();
+  document.documentElement.setAttribute('data-theme', currentTheme);
+
+  // Update High Score Display
+  const refreshScores = () => {
+    highVal.textContent = storage.getHighScore(game.mode).toLocaleString();
+    document.getElementById('stat-food').textContent = storage.data.stats.foodEaten;
+    document.getElementById('stat-merges').textContent = storage.data.stats.totalMerges;
+    document.getElementById('stat-surges').textContent = storage.data.stats.surgesActivated;
+    document.getElementById('stat-wins').textContent = storage.data.stats.pvpWins;
+  };
+  refreshScores();
+
+  // Achievement Toast Callback
+  storage.onAchievementUnlocked = (ach) => {
+    audio.playAchievement();
+    showToast(`🏆 Achievement Unlocked: ${ach.name}!`);
+  };
+
+  function showToast(msg) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<span>${msg}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+      if (toast.parentElement) toast.parentElement.removeChild(toast);
+    }, 4000);
+  }
+
+  // Input Handling: Keyboard Controls
+  window.addEventListener('keydown', (e) => {
+    if (!game.isRunning) return;
+
+    audio.init();
+
+    switch (e.key) {
+      case 'ArrowUp':
+      case 'w':
+      case 'W':
+        game.snake.setDirection(0, -1);
+        break;
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        game.snake.setDirection(0, 1);
+        break;
+      case 'ArrowLeft':
+      case 'a':
+      case 'A':
+        game.snake.setDirection(-1, 0);
+        break;
+      case 'ArrowRight':
+      case 'd':
+      case 'D':
+        game.snake.setDirection(1, 0);
+        break;
+      case ' ':
+        e.preventDefault();
+        game.triggerSurge();
+        break;
+      case 'p':
+      case 'P':
+      case 'Escape':
+        togglePause();
+        break;
+    }
+  });
+
+  // Mobile Virtual Joystick Touch Controls
+  const joystickBase = document.getElementById('joystick-base');
+  const joystickKnob = document.getElementById('joystick-knob');
+  
+  if (joystickBase && joystickKnob) {
+    let joystickActive = false;
+    let baseCenter = { x: 0, y: 0 };
+    const maxDist = 40; // Max radius for knob
+
+    const handleJoystickStart = (e) => {
+      joystickActive = true;
+      const rect = joystickBase.getBoundingClientRect();
+      baseCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      handleJoystickMove(e);
+    };
+
+    const handleJoystickMove = (e) => {
+      if (!joystickActive) return;
+      e.preventDefault();
+      
+      const touch = e.touches ? e.touches[0] : e;
+      const dx = touch.clientX - baseCenter.x;
+      const dy = touch.clientY - baseCenter.y;
+      const dist = Math.min(Math.sqrt(dx*dx + dy*dy), maxDist);
+      const angle = Math.atan2(dy, dx);
+      
+      const knobX = Math.cos(angle) * dist;
+      const knobY = Math.sin(angle) * dist;
+      
+      joystickKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
+
+      // Map to snake direction if distance is significant enough
+      if (dist > 15) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          game.snake.setDirection(dx > 0 ? 1 : -1, 0);
+        } else {
+          game.snake.setDirection(0, dy > 0 ? 1 : -1);
+        }
+      }
+    };
+
+    const handleJoystickEnd = () => {
+      joystickActive = false;
+      joystickKnob.style.transform = `translate(0px, 0px)`;
+    };
+
+    joystickBase.addEventListener('touchstart', handleJoystickStart, {passive: false});
+    joystickBase.addEventListener('touchmove', handleJoystickMove, {passive: false});
+    joystickBase.addEventListener('touchend', handleJoystickEnd);
+    joystickBase.addEventListener('mousedown', handleJoystickStart);
+    document.addEventListener('mousemove', handleJoystickMove);
+    document.addEventListener('mouseup', handleJoystickEnd);
+  }
+
+  btnSurgeTouch?.addEventListener('click', () => { game.triggerSurge(); });
+
+  // Game Mode Selection Buttons
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      game.mode = btn.getAttribute('data-mode');
+      refreshScores();
+      audio.playClick();
+    });
+  });
+
+  // HUD Update Frame Loop
+  setInterval(() => {
+    if (game.isRunning) {
+      scoreVal.textContent = game.score.toLocaleString();
+      comboVal.textContent = `${game.combo}x`;
+      surgeFill.style.width = `${game.surgeMeter}%`;
+
+      if (game.surgeMeter >= 100) {
+        surgeFill.classList.add('surge-ready');
+      } else {
+        surgeFill.classList.remove('surge-ready');
+      }
+
+      if (game.mode === 'pvp') {
+        pvpTimerBox.style.display = 'flex';
+        pvpTimerVal.textContent = `${game.pvpTimeRemaining}s`;
+      } else {
+        pvpTimerBox.style.display = 'none';
+      }
+    }
+  }, 100);
+
+  // Start & Restart Game
+  const startGame = () => {
+    startOverlay.classList.remove('active');
+    gameOverOverlay.classList.remove('active');
+    pauseOverlay.classList.remove('active');
+    audio.playClick();
+    game.start(game.mode);
+  };
+
+  btnStart?.addEventListener('click', startGame);
+  btnRestart?.addEventListener('click', startGame);
+
+  // Pause Controls
+  const togglePause = () => {
+    if (!game.isRunning) return;
+    game.isPaused = !game.isPaused;
+    if (game.isPaused) {
+      pauseOverlay.classList.add('active');
+    } else {
+      pauseOverlay.classList.remove('active');
+    }
+  };
+
+  btnPause?.addEventListener('click', togglePause);
+  btnResume?.addEventListener('click', togglePause);
+
+  // Mute & BGM Controls
+  btnMute?.addEventListener('click', () => {
+    const isMuted = audio.toggleMute();
+    btnMute.textContent = isMuted ? '🔇' : '🔊';
+  });
+
+  btnBgm?.addEventListener('click', () => {
+    const isBgmOn = audio.toggleBGM();
+    btnBgm.style.color = isBgmOn ? 'var(--accent-lime)' : 'var(--text-main)';
+  });
+
+  // Theme Switcher Loop (Cyber -> Nokia -> OLED)
+  const themes = ['cyber', 'nokia', 'oled'];
+  btnTheme?.addEventListener('click', () => {
+    const curr = storage.getTheme();
+    const nextIndex = (themes.indexOf(curr) + 1) % themes.length;
+    const nextTheme = themes[nextIndex];
+    storage.setTheme(nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    refreshScores();
+    audio.playClick();
+    showToast(`🎨 Theme switched to ${nextTheme.toUpperCase()}`);
+  });
+
+  // Game Over Callback
+  game.onGameOver = (res) => {
+    finalScoreVal.textContent = res.score.toLocaleString();
+    finalHighVal.textContent = storage.getHighScore(res.mode).toLocaleString();
+    finalMergesVal.textContent = res.merges;
+
+    if (res.isNewHighScore) {
+      newHighBadge.style.display = 'inline-block';
+      audio.playAchievement();
+    } else {
+      newHighBadge.style.display = 'none';
+    }
+
+    refreshScores();
+    gameOverOverlay.classList.add('active');
+  };
+
+  // Share Card Download & Copy
+  btnShareCard?.addEventListener('click', () => {
+    StatCardGenerator.downloadCard({
+      score: game.score,
+      mode: game.mode,
+      merges: game.mergesCount,
+      maxCombo: storage.data.stats.maxCombo,
+      foodEaten: storage.data.stats.foodEaten
+    });
+    audio.playClick();
+  });
+
+  btnShareText?.addEventListener('click', () => {
+    const shareStr = StatCardGenerator.copyShareText({
+      score: game.score,
+      mode: game.mode,
+      merges: game.mergesCount
+    });
+    showToast('📋 Score copied to clipboard!');
+    audio.playClick();
+  });
+});
