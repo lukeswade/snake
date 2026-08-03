@@ -4,6 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const game = new GameEngine('game-canvas');
+  window.game = game; // Expose for audio.js dynamic percussion
 
   // DOM Element References
   const scoreVal = document.getElementById('score-val');
@@ -228,6 +229,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 100);
 
   btnStart?.addEventListener('click', startGame);
+  
+  // Also allow tapping anywhere on the game over screen to restart (excluding buttons)
+  gameOverOverlay?.addEventListener('click', (e) => {
+    if (e.target.tagName.toLowerCase() === 'button') return;
+    startGame();
+  });
+  
   btnRestart?.addEventListener('click', startGame);
 
   // Pause Controls

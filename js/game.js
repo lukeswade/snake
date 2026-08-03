@@ -97,6 +97,9 @@ class GameEngine {
     this.historyBuffer = [];
     this.isRewinding = false;
     
+    this.combo = 1;
+    this.comboTicksLeft = 0;
+    
     // Spawn static obstacles
     this.spawnObstacles(8);
     this.spawnFood(4);
@@ -293,6 +296,14 @@ class GameEngine {
     if (this.buffs.ghost > 0) this.buffs.ghost--;
     if (this.buffs.slowmo > 0) this.buffs.slowmo--;
 
+    // Update Combo Timer (pause-safe)
+    if (this.combo > 1) {
+      this.comboTicksLeft--;
+      if (this.comboTicksLeft <= 0) {
+        this.combo = 1;
+      }
+    }
+
     // Move player snake (allow edge wrap if Ghost is active)
     const canWrapEdges = this.mode !== 'pvp' || this.buffs.ghost > 0;
     this.snake.move(this.cols, this.rows, canWrapEdges);
@@ -390,9 +401,8 @@ class GameEngine {
 
           // Combo increment
           this.combo = Math.min(8, this.combo + 1);
-          if (this.comboTimer) clearTimeout(this.comboTimer);
-          // Tighter combo window if in fever mode
-          this.comboTimer = setTimeout(() => { this.combo = 1; }, this.combo >= 8 ? 2000 : 3000);
+          // Tighter combo window if in fever mode (e.g. 40 ticks vs 60 ticks)
+          this.comboTicksLeft = this.combo >= 8 ? 40 : 60;
 
           if (this.combo >= 8) {
             // Confetti explosion!
