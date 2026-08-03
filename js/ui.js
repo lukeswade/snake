@@ -264,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btnSkipRewind?.addEventListener('click', () => {
     rewindOverlay.classList.remove('active');
     game.isPaused = false;
+    game.surgeMeter = 0; // Prevent intercept loop
     game.endGame(false); // Force full death
   });
 
