@@ -256,7 +256,7 @@ class GameEngine {
       }
     }
 
-    const head = this.snake.getHead();
+    let head = this.snake.getHead();
 
     // Scaredy 'Runner' Food AI
     this.foodList.forEach(f => {
@@ -272,7 +272,7 @@ class GameEngine {
       }
     });
 
-    // Update Buff Timerstate to history buffer for Chrono-Surge Rewind (max 40 ticks = ~4 seconds)
+    // Save state to history buffer for Chrono-Surge Rewind (max 40 ticks = ~4 seconds)
     if (this.snake && this.mode !== 'pvp') { // Chrono-Surge disabled in PvP
       this.historyBuffer.push({
         snake: JSON.parse(JSON.stringify(this.snake.segments)),
@@ -320,7 +320,7 @@ class GameEngine {
     // Self collision check (only if not surging)
     this.snake.updateParticles();
 
-    const head = this.snake.getHead();
+    head = this.snake.getHead();
 
     // Check Wall Crash (in Classic Mode)
     if (this.mode === 'classic' && !this.isSurging && this.buffs.ghost <= 0) {
