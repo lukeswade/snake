@@ -276,11 +276,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnBgm?.addEventListener('click', () => {
     const isBgmOn = audio.toggleBGM();
-    btnBgm.style.color = isBgmOn ? 'var(--accent-lime)' : 'var(--text-main)';
+    btnBgm.style.opacity = isBgmOn ? '1.0' : '0.5';
   });
 
-  // Theme Switcher Loop (Cyber -> Nokia -> OLED)
-  const themes = ['cyber', 'nokia', 'oled'];
+  // Theme Switcher Loop
+  const themes = ['cyber', 'synthwave', 'gameboy', 'nokia', 'oled'];
   btnTheme?.addEventListener('click', () => {
     const curr = storage.getTheme();
     const nextIndex = (themes.indexOf(curr) + 1) % themes.length;
