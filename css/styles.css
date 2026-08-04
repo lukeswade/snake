@@ -205,6 +205,7 @@ button {
   stroke-width: 2.5px;
   stroke: var(--text-main);
   transition: stroke 0.3s ease, filter 0.3s ease;
+  pointer-events: none; /* Prevent SVG from swallowing click events */
 }
 
 /* Base Pill Button */
@@ -290,6 +291,8 @@ button {
 }
 
 header {
+  position: relative;
+  z-index: 100;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -395,6 +398,8 @@ main {
   gap: 16px;
   position: relative;
   min-height: 0;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Left/Center Canvas Viewport */
@@ -440,6 +445,8 @@ main {
 }
 
 .sidebar-panel {
+  position: relative;
+  z-index: 100;
   width: 320px;
   flex-shrink: 0;
   background: var(--bg-glass);

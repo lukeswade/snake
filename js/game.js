@@ -49,25 +49,37 @@ class GameEngine {
   }
 
   resizeCanvas() {
-    const parent = this.canvas.parentElement;
-    if (!parent) return;
+    const main = document.querySelector('main');
+    if (!main) return;
 
-    const w = parent.clientWidth - 32;
-    const h = parent.clientHeight - 32;
+    // Available space in main, accounting for sidebar (320px) and gap (16px)
+    const availableWidth = main.clientWidth - 320 - 16 - 32;
+    const availableHeight = main.clientHeight - 32;
 
-    this.cols = Math.floor(w / this.cellSize);
-    this.rows = Math.floor(h / this.cellSize);
+    this.cols = Math.floor(availableWidth / this.cellSize);
+    this.rows = Math.floor(availableHeight / this.cellSize);
 
     // Keep grid dimensions balanced
     this.cols = Math.max(20, Math.min(48, this.cols));
     this.rows = Math.max(16, Math.min(36, this.rows));
 
+    const finalWidth = this.cols * this.cellSize;
+    const finalHeight = this.rows * this.cellSize;
+
+    // Shrink the viewport to precisely wrap the grid, eliminating empty space
+    const viewport = document.getElementById('game-viewport');
+    if (viewport) {
+      viewport.style.flex = 'none';
+      viewport.style.width = `${finalWidth + 40}px`;
+      viewport.style.height = `${finalHeight + 40}px`;
+    }
+
     // High-DPI Canvas Scaling
     const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = this.cols * this.cellSize * dpr;
-    this.canvas.height = this.rows * this.cellSize * dpr;
-    this.canvas.style.width = `${this.cols * this.cellSize}px`;
-    this.canvas.style.height = `${this.rows * this.cellSize}px`;
+    this.canvas.width = finalWidth * dpr;
+    this.canvas.height = finalHeight * dpr;
+    this.canvas.style.width = `${finalWidth}px`;
+    this.canvas.style.height = `${finalHeight}px`;
     
     // Normalize coordinate system to use CSS pixels
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
