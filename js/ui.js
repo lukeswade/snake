@@ -72,9 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Start & Restart Game
   function startGame() {
-    if (startOverlay) startOverlay.classList.remove('active');
-    if (gameOverOverlay) gameOverOverlay.classList.remove('active');
-    if (pauseOverlay) pauseOverlay.classList.remove('active');
+    startOverlay.classList.remove('active');
+    gameOverOverlay.classList.remove('active');
+    pauseOverlay.classList.remove('active');
+    rewindOverlay.classList.remove('active');
+    btnPause.classList.remove('disabled');
     audio.playClick();
     game.start(game.mode);
   }
@@ -284,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnBgm?.addEventListener('click', () => {
     const isBgmOn = audio.toggleBGM();
-    btnBgm.style.opacity = isBgmOn ? '1.0' : '0.5';
+    btnBgm.classList.toggle('disabled-emoji', !isBgmOn);
   });
 
   // Theme Switcher Loop
@@ -302,6 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Game Over Callback
   game.onGameOver = (res) => {
+    btnPause.classList.add('disabled');
     finalScoreVal.textContent = res.score.toLocaleString();
     finalHighVal.textContent = storage.getHighScore(res.mode).toLocaleString();
     finalMergesVal.textContent = res.merges;
