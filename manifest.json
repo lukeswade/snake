@@ -1,0 +1,27 @@
+{
+  "name": "Snake Surge",
+  "short_name": "Snake Surge",
+  "description": "A snake that fuses its own body. Merge three matching segments to upgrade them, bank the surge meter, and spend it to rewind your own death.",
+  "id": "/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0c16",
+  "theme_color": "#0a0c16",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

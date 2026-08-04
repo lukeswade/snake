@@ -3,13 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Snake Surge - Viral Retro Arcade Game</title>
-  <meta name="description" content="Merge snakes, collect food, trigger hyper surges, and conquer the leaderboard in Snake Surge - the ultimate addictive retro-modern web arcade game!">
+  <title>Snake Surge — Merge, Surge, Rewind Death</title>
+  <meta name="description" content="A snake that fuses its own body. Merge three matching segments to upgrade them, bank the surge meter, and when you finally crash — spend it to rewind time and undo your death.">
+  <link rel="canonical" href="https://snake.lukewade.net/">
+
+  <!-- Open Graph / Twitter share cards -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Snake Surge">
+  <meta property="og:url" content="https://snake.lukewade.net/">
+  <meta property="og:title" content="Snake Surge — Merge, Surge, Rewind Death">
+  <meta property="og:description" content="A snake that fuses its own body. Merge three matching segments to upgrade them, bank the surge meter, and when you finally crash — spend it to rewind time and undo your death.">
+  <meta property="og:image" content="https://snake.lukewade.net/og-image.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Snake Surge — neon arcade snake with merge and time-rewind mechanics.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Snake Surge — Merge, Surge, Rewind Death">
+  <meta name="twitter:description" content="Merge three matching segments to upgrade them, bank the surge meter, and spend it to rewind your own death.">
+  <meta name="twitter:image" content="https://snake.lukewade.net/og-image.jpg">
+
+  <!-- PWA -->
   <meta name="theme-color" content="#0a0c16">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Snake Surge">
+  <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
   <link rel="stylesheet" href="css/styles.css">
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/icons.js"></script>
 </head>
 <body>
 
@@ -284,5 +309,17 @@
   <script src="js/game.js"></script>
   <script src="js/cardGenerator.js"></script>
   <script src="js/ui.js"></script>
+
+  <!-- Offline support. Registered after load so it never competes with the
+       game's own assets for bandwidth on a first visit. -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => {
+          console.warn('Service worker registration failed:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
