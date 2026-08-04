@@ -5,10 +5,11 @@
 class GameEngine {
   constructor(canvasId) {
     this.canvas = document.getElementById(canvasId);
-    this.ctx = this.canvas.getContext('2d');
-
-    this.cellSize = 20;
-    this.cols = 32;
+    this.ctx = this.canvas.getContext('2d', { alpha: false });
+    
+    const diff = storage.getDifficulty();
+    this.setCellSizeFromDifficulty(diff);
+    this.cols = 40;
     this.rows = 24;
 
     this.mode = 'surge'; // 'classic', 'surge', 'pvp'
@@ -46,6 +47,25 @@ class GameEngine {
 
     this.resizeCanvas();
     window.addEventListener('resize', () => this.resizeCanvas());
+  }
+
+  setDifficulty(diff) {
+    this.setCellSizeFromDifficulty(diff);
+    this.resizeCanvas();
+    this.reset();
+  }
+
+  setCellSizeFromDifficulty(diff) {
+    switch (diff) {
+      case 'easy':
+        this.cellSize = 30;
+        break;
+      case 'hard':
+        this.cellSize = 20;
+        break;
+      default:
+        this.cellSize = 20;
+    }
   }
 
   resizeCanvas() {

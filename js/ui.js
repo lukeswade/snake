@@ -40,9 +40,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const finalMergesVal = document.getElementById('final-merges-val');
   const newHighBadge = document.getElementById('new-high-badge');
 
-  // Apply Stored Theme
+  // Apply Stored Theme & Difficulty
   const currentTheme = storage.getTheme();
   document.documentElement.setAttribute('data-theme', currentTheme);
+
+  const currentDiff = storage.getDifficulty();
+  document.querySelectorAll('.difficulty-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-diff') === currentDiff);
+    if (btn.getAttribute('data-diff') === currentDiff) {
+      btn.className = 'btn-primary difficulty-btn active';
+    } else {
+      btn.className = 'btn-secondary difficulty-btn';
+    }
+  });
+
+  // Mobile Menu Toggle Logic
+  const btnMenu = document.getElementById('btn-menu');
+  const sidebarPanel = document.querySelector('.sidebar-panel');
+  btnMenu?.addEventListener('click', () => {
+    sidebarPanel?.classList.toggle('open');
+    audio.playClick();
+  });
 
   // Update High Score Display
   const refreshScores = () => {
@@ -79,6 +97,10 @@ document.addEventListener('DOMContentLoaded', () => {
     pauseOverlay.classList.remove('active');
     rewindOverlay.classList.remove('active');
     btnPause.classList.remove('disabled');
+    
+    // Auto-collapse sidebar on mobile
+    sidebarPanel?.classList.remove('open');
+    
     audio.playClick();
     game.start(game.mode);
   }
@@ -206,6 +228,24 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
       game.mode = btn.getAttribute('data-mode');
       refreshScores();
+      audio.playClick();
+    });
+  });
+
+  // Difficulty Selection Buttons
+  document.querySelectorAll('.difficulty-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const diff = btn.getAttribute('data-diff');
+      
+      // Update UI classes
+      document.querySelectorAll('.difficulty-btn').forEach(b => {
+        b.className = 'btn-secondary difficulty-btn';
+        b.classList.remove('active');
+      });
+      btn.className = 'btn-primary difficulty-btn active';
+
+      storage.setDifficulty(diff);
+      game.setDifficulty(diff);
       audio.playClick();
     });
   });

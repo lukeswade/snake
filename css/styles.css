@@ -259,12 +259,17 @@ button {
 }
 
 .bg-ambient .orb-3 {
-  width: 350px;
-  height: 350px;
-  background: var(--accent-purple);
-  top: 40%;
-  left: 60%;
-  animation-delay: -14s;
+  width: 500px;
+  height: 500px;
+  background: var(--accent-gold);
+  bottom: 10%;
+  left: 30%;
+  animation-delay: -10s;
+}
+
+/* Mobile Menu Toggle - Hidden on Desktop */
+.mobile-menu-toggle {
+  display: none;
 }
 
 @keyframes orbFloat {
@@ -757,9 +762,26 @@ main {
 }
 
 @media (max-width: 900px) {
-  .sidebar-panel {
-    display: none;
+  .mobile-menu-toggle {
+    display: flex;
   }
+  
+  .sidebar-panel {
+    position: absolute;
+    top: 80px; /* Below header */
+    right: 20px;
+    height: calc(100vh - 120px);
+    z-index: 200;
+    transform: translateX(120%);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: var(--bg-primary); /* Less transparency for legibility */
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.8);
+  }
+
+  .sidebar-panel.open {
+    transform: translateX(0);
+  }
+
   .mobile-controls {
     display: flex;
   }

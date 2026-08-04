@@ -35,6 +35,7 @@ class StorageManager {
         maxCombo: 0
       },
       selectedTheme: 'cyber',
+      selectedDifficulty: 'hard', // Default to current behavior
       selectedSkin: 'cyber',
       unlockedSkins: ['cyber'],
       unlockedAchievements: []
@@ -122,6 +123,15 @@ class StorageManager {
 
   getTheme() {
     return this.data.selectedTheme;
+  }
+
+  setDifficulty(diff) {
+    this.data.selectedDifficulty = diff;
+    this.saveData();
+  }
+
+  getDifficulty() {
+    return this.data.selectedDifficulty || 'hard';
   }
 
   setSkin(skin) {

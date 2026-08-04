@@ -36,6 +36,7 @@
         <button id="btn-bgm" class="btn-icon" title="Toggle Synth BGM"><i data-lucide="music"></i></button>
         <button id="btn-mute" class="btn-icon" title="Toggle Mute Sound"><i data-lucide="volume-2"></i></button>
         <button id="btn-pause" class="btn-icon disabled" title="Pause Game"><i data-lucide="pause"></i></button>
+        <button id="btn-menu" class="btn-icon mobile-menu-toggle" title="Menu"><i data-lucide="menu"></i></button>
       </div>
     </header>
 
@@ -178,6 +179,17 @@
               </div>
             </button>
           </div>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--border-glass);">
+
+        <div>
+          <span class="panel-section-title"><i data-lucide="gauge" style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 6px;"></i> SELECT DIFFICULTY</span>
+          <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button class="btn-secondary difficulty-btn" data-diff="easy" style="flex: 1; padding: 10px 0; font-size: 0.85rem;">Easy</button>
+            <button class="btn-primary difficulty-btn active" data-diff="hard" style="flex: 1; padding: 10px 0; font-size: 0.85rem;">Hard</button>
+          </div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center;">Changes grid size dynamically.</p>
         </div>
 
         <hr style="border: none; border-top: 1px solid var(--border-glass);">
