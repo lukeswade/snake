@@ -77,7 +77,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.filter);
 
     osc.start(now);
     osc.stop(now + 0.08);
@@ -125,7 +125,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.filter);
 
     osc.start(now);
     osc.stop(now + 0.35);
@@ -148,7 +148,7 @@ class SoundEngine {
     gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.filter);
 
     osc.start(now);
     osc.stop(now + 0.4);
@@ -171,10 +171,35 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.03);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.filter);
 
     osc.start(now);
     osc.stop(now + 0.03);
+  }
+
+  playReady() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    // Quick two-note "power ready" chirp
+    [660, 990].forEach((freq, idx) => {
+      const now = this.ctx.currentTime + (idx * 0.08);
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+      osc.connect(gain);
+      gain.connect(this.filter);
+
+      osc.start(now);
+      osc.stop(now + 0.1);
+    });
   }
 
   playAchievement() {

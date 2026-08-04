@@ -463,6 +463,8 @@ main {
   display: flex;
   flex-direction: column;
   gap: 25px;
+  overflow-y: auto; /* Panel content can exceed short viewports */
+  max-height: 100%;
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
@@ -535,6 +537,27 @@ main {
   animation: pulseSurge 0.8s infinite alternate;
 }
 
+/* Active Power-Up Buff Indicators */
+.buff-indicators {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.buff-pill {
+  background: rgba(0, 240, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--accent-cyan);
+  border-radius: 9999px;
+  padding: 8px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+  box-shadow: var(--glow-cyan);
+}
+
 @keyframes pulseSurge {
   0% { filter: brightness(1); }
   100% { filter: brightness(1.5); }
@@ -575,13 +598,14 @@ main {
 
 .mode-btn:hover {
   background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateX(5px);
 }
 
 .mode-btn.active {
   background: rgba(0, 240, 255, 0.1);
   border-color: var(--accent-cyan);
-  box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05);
+  box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05), var(--glow-cyan);
 }
 
 .mode-btn.active .lucide {
@@ -599,17 +623,6 @@ main {
   color: var(--text-muted);
 }
 
-.mode-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.mode-btn.active {
-  background: rgba(0, 240, 255, 0.12);
-  border-color: var(--accent-cyan);
-  box-shadow: var(--glow-cyan);
-}
-
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -623,8 +636,8 @@ main {
 }
 
 @keyframes feverPulse {
-  0% { transform: translate(-50%, -50%) scale(1); }
-  100% { transform: translate(-50%, -50%) scale(1.02); }
+  0% { transform: scale(1); }
+  100% { transform: scale(1.015); }
 }
 
 .stat-item {
@@ -761,6 +774,91 @@ main {
   z-index: 10;
 }
 
+/* Narrow screens: the header pill runs out of room for 6 icon buttons
+   alongside the full wordmark, so shed chrome progressively. */
+@media (max-width: 700px) {
+  header {
+    padding: 12px 16px;
+  }
+
+  .logo-title .badge {
+    display: none;
+  }
+
+  .logo-title {
+    font-size: 1.1rem;
+  }
+
+  .nav-actions {
+    gap: 6px;
+  }
+
+  .btn-icon {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 520px) {
+  /* Keep the logo mark, drop the wordmark so the controls always fit */
+  .logo-title {
+    display: none;
+  }
+
+  .nav-actions {
+    gap: 5px;
+  }
+
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .btn-icon .lucide {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Narrow boards can't fit the full-size HUD row in one line */
+@media (max-width: 620px) {
+  .hud-overlay {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .hud-card {
+    padding: 6px 12px;
+  }
+
+  .hud-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.5px;
+  }
+
+  .hud-value {
+    font-size: 1rem;
+  }
+
+  .surge-meter-wrapper {
+    min-width: 0;
+    flex: 1 1 90px;
+  }
+
+  .buff-indicators {
+    flex-wrap: wrap;
+    flex-basis: 100%;
+  }
+
+  .buff-pill {
+    padding: 5px 10px;
+    font-size: 0.68rem;
+  }
+}
+
 @media (max-width: 900px) {
   .mobile-menu-toggle {
     display: flex;
@@ -831,6 +929,211 @@ main {
   pointer-events: all;
   box-shadow: var(--glow-magenta);
   touch-action: manipulation;
+}
+
+/* Start / Resume Countdown */
+.countdown-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.countdown-overlay.active {
+  opacity: 1;
+}
+
+.countdown-num {
+  font-family: var(--font-mono);
+  font-size: 7rem;
+  font-weight: 900;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 30px var(--accent-cyan), 0 0 60px rgba(0, 240, 255, 0.4);
+  animation: countdownPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes countdownPop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Snake Skin Picker */
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 8px;
+}
+
+.skin-btn {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 1.3rem;
+  padding: 0;
+}
+
+.skin-btn .skin-swatches {
+  display: flex;
+  gap: 2px;
+}
+
+.skin-btn .skin-swatch {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.skin-btn:hover:not(.locked) {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.skin-btn.selected {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.12);
+  box-shadow: var(--glow-cyan);
+}
+
+.skin-btn.locked {
+  opacity: 0.35;
+  filter: grayscale(90%);
+  cursor: not-allowed;
+}
+
+/* Leaderboard Modal */
+.lb-tabs {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.lb-tab {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.lb-tab.active {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  font-family: var(--font-mono);
+}
+
+.lb-row.top-1 {
+  border-color: var(--accent-gold);
+  background: rgba(255, 215, 0, 0.08);
+}
+
+.lb-rank {
+  font-weight: 800;
+  color: var(--text-muted);
+  min-width: 28px;
+  text-align: left;
+}
+
+.lb-row.top-1 .lb-rank { color: var(--accent-gold); }
+
+.lb-score {
+  font-weight: 800;
+  color: var(--accent-cyan);
+  flex: 1;
+  text-align: left;
+}
+
+.lb-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.lb-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 24px 0;
+}
+
+/* Achievements Modal Grid */
+.ach-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-height: 45vh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.ach-item {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+}
+
+.ach-item.unlocked {
+  border-color: var(--accent-gold);
+  background: rgba(255, 215, 0, 0.06);
+}
+
+.ach-item.locked {
+  opacity: 0.4;
+  filter: grayscale(80%);
+}
+
+.ach-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.ach-name {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.ach-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 /* Toast Notifications */

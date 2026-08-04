@@ -36,22 +36,58 @@ class StorageManager {
       },
       selectedTheme: 'cyber',
       selectedDifficulty: 'hard', // Default to current behavior
+      settings: {
+        muted: false,
+        bgm: false
+      },
       selectedSkin: 'cyber',
       unlockedSkins: ['cyber'],
-      unlockedAchievements: []
+      unlockedAchievements: [],
+      leaderboard: { classic: [], surge: [], pvp: [] }
     };
   }
 
   loadData() {
     try {
       const raw = localStorage.getItem(this.key);
-      if (!raw) return this.getDefaultData();
+      const defaults = this.getDefaultData();
+      if (!raw) return defaults;
       const parsed = JSON.parse(raw);
-      return { ...this.getDefaultData(), ...parsed };
+      const merged = { ...defaults, ...parsed };
+      // Merge nested objects key-by-key, otherwise an older save's `stats`
+      // object replaces the defaults wholesale and any newly added stat key
+      // stays undefined (updateStats then silently skips it forever).
+      for (const key of ['highScores', 'stats', 'settings', 'leaderboard']) {
+        merged[key] = { ...defaults[key], ...(parsed[key] || {}) };
+      }
+      return merged;
     } catch (e) {
       console.warn('Failed to load LocalStorage data, using defaults.', e);
       return this.getDefaultData();
     }
+  }
+
+  /* Leaderboard: keeps the top 10 runs per mode.
+     Returns the 1-based rank if the run placed, otherwise null. */
+  addLeaderboardEntry(mode, score) {
+    if (score <= 0) return null;
+    if (!this.data.leaderboard[mode]) this.data.leaderboard[mode] = [];
+    const list = this.data.leaderboard[mode];
+    // Local calendar date — toISOString() is UTC and would stamp "tomorrow"
+    // for anyone playing in the evening west of Greenwich.
+    const d = new Date();
+    const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const entry = { score, date: stamp };
+    list.push(entry);
+    list.sort((a, b) => b.score - a.score);
+    this.data.leaderboard[mode] = list.slice(0, 10);
+    this.saveData();
+    const rank = this.data.leaderboard[mode].indexOf(entry);
+    return rank === -1 ? null : rank + 1;
+  }
+
+  getLeaderboard(mode) {
+    return this.data.leaderboard[mode] || [];
   }
 
   saveData() {
@@ -87,7 +123,27 @@ class StorageManager {
     this.checkAchievements();
   }
 
+  /* Evaluate skin unlock conditions against career progress.
+     SKINS lives in snake.js, which loads after this file — hence the guard. */
+  checkSkinUnlocks() {
+    if (typeof SKINS === 'undefined') return;
+    const bestScore = Math.max(...Object.values(this.data.highScores));
+    SKINS.forEach(skin => {
+      if (!skin.unlock || this.data.unlockedSkins.includes(skin.id)) return;
+      const u = skin.unlock;
+      const earned = u.stat
+        ? (this.data.stats[u.stat] || 0) >= u.need
+        : bestScore >= u.anyScore;
+      if (earned) {
+        this.data.unlockedSkins.push(skin.id);
+        this.saveData();
+        if (this.onSkinUnlocked) this.onSkinUnlocked(skin);
+      }
+    });
+  }
+
   checkAchievements() {
+    this.checkSkinUnlocks();
     const newlyUnlocked = [];
 
     const unlock = (id) => {
@@ -123,6 +179,16 @@ class StorageManager {
 
   getTheme() {
     return this.data.selectedTheme;
+  }
+
+  getSetting(key) {
+    return this.data.settings ? this.data.settings[key] : undefined;
+  }
+
+  setSetting(key, val) {
+    if (!this.data.settings) this.data.settings = {};
+    this.data.settings[key] = val;
+    this.saveData();
   }
 
   setDifficulty(diff) {

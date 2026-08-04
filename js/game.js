@@ -40,7 +40,6 @@ class GameEngine {
     this.isPaused = false;
 
     this.lastStepTime = 0;
-    this.stepInterval = 100; // ms per frame movement tick
 
     this.shakeTime = 0;
     this.shakeIntensity = 0;
@@ -56,15 +55,20 @@ class GameEngine {
   }
 
   setCellSizeFromDifficulty(diff) {
+    // Difficulty controls both grid density (cell size) and base tick speed
     switch (diff) {
       case 'easy':
         this.cellSize = 30;
+        this.stepInterval = 120;
+        break;
+      case 'medium':
+        this.cellSize = 25;
+        this.stepInterval = 105;
         break;
       case 'hard':
-        this.cellSize = 20;
-        break;
       default:
         this.cellSize = 20;
+        this.stepInterval = 90;
     }
   }
 
@@ -72,16 +76,23 @@ class GameEngine {
     const main = document.querySelector('main');
     if (!main) return;
 
-    // Available space in main, accounting for sidebar (320px) and gap (16px)
-    const availableWidth = main.clientWidth - 320 - 16 - 32;
+    // Reserve space for the sidebar only while it is actually in the layout
+    // flow — under the mobile breakpoint it becomes an absolute drawer, and
+    // subtracting its width there would shrink the board for no reason.
+    const sidebar = document.querySelector('.sidebar-panel');
+    const sidebarInFlow = sidebar && getComputedStyle(sidebar).position !== 'absolute';
+    const reserved = sidebarInFlow ? sidebar.offsetWidth + 16 : 0;
+
+    const availableWidth = main.clientWidth - reserved - 32;
     const availableHeight = main.clientHeight - 32;
 
     this.cols = Math.floor(availableWidth / this.cellSize);
     this.rows = Math.floor(availableHeight / this.cellSize);
 
-    // Keep grid dimensions balanced
-    this.cols = Math.max(20, Math.min(48, this.cols));
-    this.rows = Math.max(16, Math.min(36, this.rows));
+    // Keep grid dimensions balanced. The lower bound stays small enough that a
+    // narrow phone viewport can't be forced into a board wider than the screen.
+    this.cols = Math.max(12, Math.min(48, this.cols));
+    this.rows = Math.max(12, Math.min(36, this.rows));
 
     const finalWidth = this.cols * this.cellSize;
     const finalHeight = this.rows * this.cellSize;
@@ -113,11 +124,11 @@ class GameEngine {
     this.surgeMeter = 0;
     this.isSurging = false;
     this.isPaused = false;
-    this.isSurging = false;
     this.surgeDuration = 0;
     this.hitStopFrames = 0;
     this.isRunning = true;
     this.shakeTime = 0;
+    audio.setSurgeFilter(false);
 
     const currentSkin = storage.data.selectedSkin;
     this.snake = new Snake(Math.floor(this.cols / 2), Math.floor(this.rows / 2), 4, currentSkin);
@@ -133,10 +144,10 @@ class GameEngine {
     this.comboTicksLeft = 0;
     
     // Spawn static obstacles
+    this.aiSnakes = [];
     this.spawnObstacles(8);
     this.spawnFood(4);
 
-    this.aiSnakes = [];
     if (this.mode === 'pvp') {
       this.pvpTimeRemaining = 60;
       this.aiSnakes = [
@@ -148,7 +159,9 @@ class GameEngine {
         if (this.isRunning && !this.isPaused) {
           this.pvpTimeRemaining--;
           if (this.pvpTimeRemaining <= 0) {
-            this.endGame(true);
+            // Timer expired: highest score wins
+            const bestAI = Math.max(0, ...this.aiSnakes.map(a => a.alive ? a.score : 0));
+            this.endGame(this.score >= bestAI);
           }
         }
       }, 1000);
@@ -158,14 +171,23 @@ class GameEngine {
     requestAnimationFrame((t) => this.gameLoop(t));
   }
 
+  isCellOccupied(x, y) {
+    return this.snake.segments.some(s => s.x === x && s.y === y)
+      || this.obstacles.some(o => o.x === x && o.y === y)
+      || this.foodList.some(f => f.x === x && f.y === y)
+      || this.aiSnakes.some(ai => ai.alive && ai.segments.some(s => s.x === x && s.y === y));
+  }
+
   spawnFood(count = 1) {
     for (let i = 0; i < count; i++) {
-      let x, y, occupied;
+      let x, y, occupied, attempts = 0;
       do {
         x = Math.floor(Math.random() * this.cols);
         y = Math.floor(Math.random() * this.rows);
-        occupied = this.snake.segments.some(s => s.x === x && s.y === y);
-      } while (occupied);
+        occupied = this.isCellOccupied(x, y);
+        attempts++;
+      } while (occupied && attempts < 200);
+      if (occupied) continue; // Board is effectively full
 
       const typeRand = Math.random();
       let tier = 1;
@@ -194,11 +216,10 @@ class GameEngine {
         x = Math.floor(Math.random() * this.cols);
         y = Math.floor(Math.random() * this.rows);
         
-        // Avoid player spawn (center) and edges
+        // Avoid player spawn (center), edges, and anything already placed
         const distToCenter = Math.abs(x - this.cols/2) + Math.abs(y - this.rows/2);
-        const onSnake = this.snake.segments.some(s => s.x === x && s.y === y);
-        
-        if (distToCenter > 4 && !onSnake && x > 0 && x < this.cols-1 && y > 0 && y < this.rows-1) {
+
+        if (distToCenter > 4 && !this.isCellOccupied(x, y) && x > 0 && x < this.cols-1 && y > 0 && y < this.rows-1) {
           isValid = true;
           this.obstacles.push({ x, y });
         }
@@ -211,6 +232,38 @@ class GameEngine {
     this.hitStopFrames = frames;
   }
 
+  togglePause() {
+    // inCountdown is owned by the UI's count-in; unpausing during it would
+    // drop the player into a moving board before the count finished.
+    if (!this.isRunning || this.isRewinding || this.inCountdown) return;
+    this.isPaused = !this.isPaused;
+    if (!this.isPaused) {
+      // Avoid a huge delta (instant multi-step) on resume
+      this.lastStepTime = performance.now();
+    }
+  }
+
+  reset() {
+    this.isRunning = false;
+    this.isPaused = false;
+    this.isSurging = false;
+    this.isRewinding = false;
+    this.inCountdown = false;
+    if (this.pvpTimer) clearInterval(this.pvpTimer);
+    this.snake = null;
+    this.aiSnakes = [];
+    this.foodList = [];
+    this.obstacles = [];
+    this.floatingTexts = [];
+    this.historyBuffer = [];
+    this.score = 0;
+    this.combo = 1;
+    this.surgeMeter = 0;
+    this.canvas.classList.remove('fever-active');
+    audio.setSurgeFilter(false);
+    this.render(1.0);
+  }
+
   triggerSurge() {
     if (this.surgeMeter >= 100 && !this.isSurging) {
       this.isSurging = true;
@@ -218,12 +271,23 @@ class GameEngine {
       this.surgeMeter = 0;
       this.snake.isSurging = true;
       this.hitStop(5); // Major impact!
+      audio.playSurge();
       audio.setSurgeFilter(true);
       storage.updateStats({ surgesActivated: 1 });
       this.addFloatingText("SURGE!", (this.snake.getHead().x + 0.5) * this.cellSize, this.snake.getHead().y * this.cellSize, '#ff007f');
       this.triggerShake(5, 5);
     }
     return false;
+  }
+
+  gainSurge(amount) {
+    const wasReady = this.surgeMeter >= 100;
+    this.surgeMeter = Math.min(100, this.surgeMeter + amount);
+    if (!wasReady && this.surgeMeter >= 100) {
+      audio.playReady();
+      const h = this.snake.getHead();
+      this.addFloatingText('SURGE READY! [SPACE]', (h.x + 0.5) * this.cellSize, (h.y - 1) * this.cellSize, '#00f0ff', 70);
+    }
   }
 
   triggerShake(duration = 10, intensity = 6) {
@@ -288,6 +352,7 @@ class GameEngine {
       if (this.surgeDuration <= 0) {
         this.isSurging = false;
         this.snake.isSurging = false;
+        audio.setSurgeFilter(false);
       }
     }
 
@@ -299,10 +364,15 @@ class GameEngine {
         const dx = f.x - head.x;
         const dy = f.y - head.y;
         if (Math.abs(dx) <= 3 && Math.abs(dy) <= 3) {
-          f.x += Math.sign(dx) || (Math.random() > 0.5 ? 1 : -1);
-          f.y += Math.sign(dy) || (Math.random() > 0.5 ? 1 : -1);
-          f.x = Math.max(1, Math.min(this.cols - 2, f.x));
-          f.y = Math.max(1, Math.min(this.rows - 2, f.y));
+          let nx = f.x + (Math.sign(dx) || (Math.random() > 0.5 ? 1 : -1));
+          let ny = f.y + (Math.sign(dy) || (Math.random() > 0.5 ? 1 : -1));
+          nx = Math.max(1, Math.min(this.cols - 2, nx));
+          ny = Math.max(1, Math.min(this.rows - 2, ny));
+          // Don't flee into an obstacle where it could never be eaten
+          if (!this.obstacles.some(o => o.x === nx && o.y === ny)) {
+            f.x = nx;
+            f.y = ny;
+          }
         }
       }
     });
@@ -336,9 +406,10 @@ class GameEngine {
       }
     }
 
-    // Move player snake (allow edge wrap if Ghost is active)
-    const canWrapEdges = this.mode !== 'pvp' || this.buffs.ghost > 0;
-    this.snake.move(this.cols, this.rows, canWrapEdges);
+    // Move player snake. Surge mode always wraps; Classic/PvP only wrap
+    // while a Ghost buff or an active Surge makes the snake intangible.
+    const canWrapEdges = this.mode === 'surge' || this.isSurging || this.buffs.ghost > 0;
+    this.snake.move(this.cols, this.rows, canWrapEdges, this.cellSize);
 
     // Dynamic Reactive Music Mood
     let mood = 'mario'; // Default bright
@@ -365,8 +436,8 @@ class GameEngine {
 
     head = this.snake.getHead();
 
-    // Check Wall Crash (in Classic Mode)
-    if (this.mode === 'classic' && !this.isSurging && this.buffs.ghost <= 0) {
+    // Check Wall Crash (Classic & PvP — any mode that didn't wrap)
+    if (!canWrapEdges) {
       if (head.x < 0 || head.x >= this.cols || head.y < 0 || head.y >= this.rows) {
         audio.playDie();
         this.endGame(false);
@@ -400,8 +471,13 @@ class GameEngine {
         const dx = head.x - food.x;
         const dy = head.y - food.y;
         if (Math.abs(dx) <= 4 && Math.abs(dy) <= 4) {
-          food.x += Math.sign(dx);
-          food.y += Math.sign(dy);
+          const nx = food.x + Math.sign(dx);
+          const ny = food.y + Math.sign(dy);
+          // Don't pull food inside an obstacle
+          if (!this.obstacles.some(o => o.x === nx && o.y === ny)) {
+            food.x = nx;
+            food.y = ny;
+          }
         }
       }
 
@@ -419,7 +495,7 @@ class GameEngine {
           
           if (food.type === 'runner') {
             pts += 500;
-            this.surgeMeter = Math.min(100, this.surgeMeter + 25);
+            this.gainSurge(25);
             this.hitStop(5);
             this.addFloatingText(`CAUGHT!`, (head.x + 0.5) * this.cellSize, (head.y - 1) * this.cellSize, '#9d00ff');
           } else if (food.type === 'gold') {
@@ -429,7 +505,7 @@ class GameEngine {
           if (this.combo >= 8) pts *= 2; // Fever mode double points!
           
           this.score += pts;
-          this.surgeMeter = Math.min(100, this.surgeMeter + (15 * food.tier));
+          this.gainSurge(15 * food.tier);
 
           // Combo increment
           this.combo = Math.min(8, this.combo + 1);
@@ -472,12 +548,26 @@ class GameEngine {
       const allObstacles = [
         ...this.obstacles,
         ...this.snake.segments,
-        ...this.aiSnakes.flatMap(a => a.segments)
+        ...this.aiSnakes.filter(a => a.alive).flatMap(a => a.segments)
       ];
 
       this.aiSnakes.forEach(ai => {
+        if (!ai.alive) return;
         ai.updateAI(this.foodList, this.cols, this.rows, allObstacles);
+        if (!ai.alive) return; // Died crashing into a wall
         const aiHead = ai.getHead();
+
+        // AI dies crashing into obstacles, the player, or another snake's body
+        const crashed =
+          this.obstacles.some(o => o.x === aiHead.x && o.y === aiHead.y) ||
+          this.snake.segments.some(s => s.x === aiHead.x && s.y === aiHead.y) ||
+          this.aiSnakes.some(other => other.alive && other.segments.some((s, i) =>
+            !(other === ai && i === 0) && s.x === aiHead.x && s.y === aiHead.y));
+        if (crashed) {
+          ai.alive = false;
+          this.addFloatingText(`${ai.name} DOWN!`, (aiHead.x + 0.5) * this.cellSize, aiHead.y * this.cellSize, ai.color, 60);
+          return;
+        }
 
         // AI food collision
         for (let i = this.foodList.length - 1; i >= 0; i--) {
@@ -489,6 +579,23 @@ class GameEngine {
           }
         }
       });
+
+      // Player dies crashing into a living AI snake (unless intangible)
+      if (!this.isSurging && this.buffs.ghost <= 0) {
+        const hitAI = this.aiSnakes.some(ai => ai.alive &&
+          ai.segments.some(s => s.x === head.x && s.y === head.y));
+        if (hitAI) {
+          audio.playDie();
+          this.endGame(false);
+          return;
+        }
+      }
+
+      // All opponents eliminated: instant victory
+      if (this.aiSnakes.length > 0 && this.aiSnakes.every(ai => !ai.alive)) {
+        this.endGame(true);
+        return;
+      }
     }
   }
 
@@ -629,6 +736,7 @@ class GameEngine {
 
     this.isRunning = false;
     if (this.pvpTimer) clearInterval(this.pvpTimer);
+    audio.setSurgeFilter(false);
 
     const isNewHigh = storage.setHighScore(this.mode, this.score);
     storage.updateStats({
@@ -683,7 +791,7 @@ class GameEngine {
       const state = this.historyBuffer.pop();
       this.snake.segments = state.snake;
       this.snake.direction = state.snakeDir;
-      this.snake.nextDirection = state.snakeDir;
+      this.snake.inputQueue = [];
       this.score = state.score;
       this.combo = state.combo;
       this.surgeMeter = state.surgeMeter;

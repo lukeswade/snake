@@ -104,8 +104,8 @@ class StatCardGenerator {
   static copyShareText(stats) {
     const text = `🐍 I just scored ${stats.score.toLocaleString()} points in Snake Surge (${stats.mode} Mode) with ${stats.merges || 0} merges! Beat my score! 🚀`;
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
+      return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
     }
-    return text;
+    return Promise.resolve(false);
   }
 }

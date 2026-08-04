@@ -34,6 +34,7 @@
       </div>
 
       <div class="nav-actions">
+        <button id="btn-achievements" class="btn-icon" title="Achievements"><i data-lucide="trophy"></i></button>
         <button id="btn-theme" class="btn-icon" title="Switch Theme"><i data-lucide="palette"></i></button>
         <button id="btn-bgm" class="btn-icon" title="Toggle Synth BGM"><i data-lucide="music"></i></button>
         <button id="btn-mute" class="btn-icon" title="Toggle Mute Sound"><i data-lucide="volume-2"></i></button>
@@ -61,7 +62,7 @@
           </div>
 
           <div class="surge-meter-wrapper">
-            <span class="hud-label" style="display: flex; justify-space-between;">
+            <span class="hud-label" style="display: flex; justify-content: space-between;">
               SURGE POWER
               <span id="combo-val" style="color: var(--accent-lime); font-weight: 800;">1x</span>
             </span>
@@ -74,10 +75,17 @@
             <span class="hud-label">PVP TIME</span>
             <span class="hud-value" id="pvp-timer-val" style="color: var(--accent-magenta);">60s</span>
           </div>
+
+          <div class="buff-indicators" id="buff-indicators"></div>
         </div>
 
         <!-- HTML5 Canvas -->
         <canvas id="game-canvas"></canvas>
+
+        <!-- Start / Resume Countdown -->
+        <div class="countdown-overlay" id="countdown-overlay">
+          <div class="countdown-num" id="countdown-num">3</div>
+        </div>
 
         <!-- Mobile Touch Controls -->
         <div class="mobile-controls">
@@ -105,7 +113,7 @@
         <!-- Game Over Overlay Screen -->
         <div class="overlay-screen" id="game-over-overlay">
           <div class="overlay-card">
-            <h2 class="overlay-title" style="color: var(--accent-magenta);">GAME OVER</h2>
+            <h2 class="overlay-title" id="game-over-title" style="color: var(--accent-magenta);">GAME OVER</h2>
 
             <div style="display: flex; gap: 20px; margin: 10px 0;">
               <div>
@@ -116,9 +124,15 @@
                 <span class="hud-label">HIGH SCORE</span>
                 <div style="font-size: 2.2rem; font-weight: 900; color: var(--accent-gold);" id="final-high-val">0</div>
               </div>
+              <div>
+                <span class="hud-label">MERGES</span>
+                <div style="font-size: 2.2rem; font-weight: 900; color: var(--accent-lime);" id="final-merges-val">0</div>
+              </div>
             </div>
 
             <span id="new-high-badge" class="badge" style="background: var(--accent-gold); color: #000; display: none; padding: 6px 14px; font-weight: 800;"><i data-lucide="trophy" style="width: 16px; height: 16px; vertical-align: middle;"></i> NEW HIGH SCORE!</span>
+
+            <span id="rank-badge" class="badge" style="background: var(--accent-purple); color: #fff; display: none; padding: 6px 14px; font-weight: 800;"></span>
 
             <div style="display: flex; gap: 10px; width: 100%;">
               <button class="btn-secondary" id="btn-share-card"><i data-lucide="camera" style="width: 16px; height: 16px;"></i> Download Stat Card</button>
@@ -149,6 +163,30 @@
             </button>
             <p style="margin-top: 15px; font-size: 0.9rem; color: #aaa;">(Costs 50 Surge) Or press [R]</p>
             <button class="btn-secondary" id="btn-skip-rewind" style="margin-top: 20px;">Accept Fate (Die)</button>
+          </div>
+        </div>
+
+        <!-- Leaderboard Modal -->
+        <div class="overlay-screen" id="leaderboard-modal">
+          <div class="overlay-card">
+            <h2 class="overlay-title" style="font-size: 1.6rem;">LEADERBOARD</h2>
+            <div class="lb-tabs" id="lb-tabs">
+              <button class="lb-tab active" data-lb-mode="surge">Surge</button>
+              <button class="lb-tab" data-lb-mode="classic">Classic</button>
+              <button class="lb-tab" data-lb-mode="pvp">PvP</button>
+            </div>
+            <div class="lb-list" id="lb-list"></div>
+            <button class="btn-secondary" id="btn-close-leaderboard">Close</button>
+          </div>
+        </div>
+
+        <!-- Achievements Modal -->
+        <div class="overlay-screen" id="achievements-modal">
+          <div class="overlay-card">
+            <h2 class="overlay-title" style="font-size: 1.6rem;">ACHIEVEMENTS</h2>
+            <span class="badge" id="ach-count" style="background: var(--accent-purple); color: #fff; padding: 4px 12px;">0/0</span>
+            <div class="ach-grid" id="achievements-grid"></div>
+            <button class="btn-secondary" id="btn-close-achievements">Close</button>
           </div>
         </div>
 
@@ -189,9 +227,17 @@
           <span class="panel-section-title"><i data-lucide="gauge" style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 6px;"></i> SELECT DIFFICULTY</span>
           <div style="display: flex; gap: 8px; margin-top: 10px;">
             <button class="btn-secondary difficulty-btn" data-diff="easy" style="flex: 1; padding: 10px 0; font-size: 0.85rem;">Easy</button>
+            <button class="btn-secondary difficulty-btn" data-diff="medium" style="flex: 1; padding: 10px 0; font-size: 0.85rem;">Medium</button>
             <button class="btn-primary difficulty-btn active" data-diff="hard" style="flex: 1; padding: 10px 0; font-size: 0.85rem;">Hard</button>
           </div>
-          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center;">Changes grid size dynamically.</p>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center;">Changes grid size &amp; game speed.</p>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--border-glass);">
+
+        <div>
+          <span class="panel-section-title"><i data-lucide="palette" style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 6px;"></i> SNAKE SKIN</span>
+          <div class="skin-grid" id="skin-grid" style="margin-top: 10px;"></div>
         </div>
 
         <hr style="border: none; border-top: 1px solid var(--border-glass);">
@@ -216,6 +262,9 @@
               <span class="stat-lbl">PvP Victories</span>
             </div>
           </div>
+          <button class="btn-secondary" id="btn-leaderboard" style="margin-top: 12px; padding: 10px 0; font-size: 0.85rem;">
+            <i data-lucide="list-ordered" style="width: 16px; height: 16px;"></i> View Leaderboard
+          </button>
         </div>
 
       </aside>

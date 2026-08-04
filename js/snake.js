@@ -11,6 +11,45 @@ const TIER_COLORS = [
   '#ffffff'  // Tier 6: Radiant White
 ];
 
+/* Snake Skins — recolour the body palette by tier.
+   `unlock` is evaluated against career stats / high scores in storage.js. */
+const SKINS = [
+  {
+    id: 'cyber', name: 'Cyber Neon', icon: '⚡',
+    desc: 'Unlocked by default.',
+    palette: TIER_COLORS,
+    unlock: null
+  },
+  {
+    id: 'toxic', name: 'Toxic Slime', icon: '☣️',
+    desc: 'Eat 100 food items.',
+    palette: ['#39ff14', '#a3ff00', '#00ff88', '#7fff00', '#d4ff00', '#f0fff0'],
+    unlock: { stat: 'foodEaten', need: 100 }
+  },
+  {
+    id: 'magma', name: 'Magma Core', icon: '🌋',
+    desc: 'Perform 25 total merges.',
+    palette: ['#ff6b00', '#ff3c00', '#ffb700', '#ff0044', '#ffd700', '#fff5e1'],
+    unlock: { stat: 'totalMerges', need: 25 }
+  },
+  {
+    id: 'void', name: 'Void Walker', icon: '🌌',
+    desc: 'Activate 10 hyper-surges.',
+    palette: ['#9d4edd', '#7b2cbf', '#c77dff', '#5a189a', '#e0aaff', '#ffffff'],
+    unlock: { stat: 'surgesActivated', need: 10 }
+  },
+  {
+    id: 'midas', name: 'Midas Touch', icon: '👑',
+    desc: 'Score 1,000 points in any mode.',
+    palette: ['#ffd700', '#ffed4e', '#ffb700', '#daa520', '#fff8dc', '#ffffff'],
+    unlock: { anyScore: 1000 }
+  }
+];
+
+function getSkin(id) {
+  return SKINS.find(s => s.id === id) || SKINS[0];
+}
+
 class Particle {
   constructor(x, y, color, speed = 2) {
     this.x = x;
@@ -44,34 +83,46 @@ class Particle {
 class Snake {
   constructor(startX = 10, startY = 10, initialLength = 4, skin = 'cyber') {
     this.skin = skin;
+    this.palette = getSkin(skin).palette;
     this.direction = { x: 1, y: 0 }; // Moving right
-    this.nextDirection = { x: 1, y: 0 };
+    this.inputQueue = []; // Buffered direction changes (max 2) so fast double-turns aren't lost
     this.segments = [];
     this.particles = [];
     this.isSurging = false;
 
-    // Build initial snake segments
+    // Build initial snake segments (base segments never merge —
+    // otherwise the starting body instantly merges for free points)
     for (let i = 0; i < initialLength; i++) {
       this.segments.push({
         x: startX - i,
         y: startY,
-        tier: 1
+        tier: 1,
+        base: true
       });
     }
   }
 
   setDirection(dirX, dirY) {
-    // Prevent 180-degree instant self-reversal
-    if (this.direction.x + dirX === 0 && this.direction.y + dirY === 0) return;
-    this.nextDirection = { x: dirX, y: dirY };
+    // Validate against the last queued direction (or current heading) so a
+    // rapid up→left entered within one tick plays out as two turns.
+    const last = this.inputQueue.length
+      ? this.inputQueue[this.inputQueue.length - 1]
+      : this.direction;
+    // Prevent 180-degree instant self-reversal and duplicate inputs
+    if (last.x + dirX === 0 && last.y + dirY === 0) return;
+    if (last.x === dirX && last.y === dirY) return;
+    if (this.inputQueue.length < 2) {
+      this.inputQueue.push({ x: dirX, y: dirY });
+    }
   }
 
   getHead() {
     return this.segments[0];
   }
 
-  move(cols, rows, wrapEdges = false) {
-    this.direction = { ...this.nextDirection };
+  move(cols, rows, wrapEdges = false, cellSize = 20) {
+    const queued = this.inputQueue.shift();
+    if (queued) this.direction = queued;
     const head = this.getHead();
 
     // Store previous positions for smooth interpolation
@@ -101,7 +152,7 @@ class Snake {
     // Spawn subtle tail movement particles if surging
     if (this.isSurging) {
       const tail = this.segments[this.segments.length - 1];
-      this.spawnParticles((tail.x + 0.5) * 20, (tail.y + 0.5) * 20, '#00f0ff', 2, 3);
+      this.spawnParticles((tail.x + 0.5) * cellSize, (tail.y + 0.5) * cellSize, this.palette[0], 2, 3);
     }
   }
 
@@ -115,11 +166,15 @@ class Snake {
   }
 
   checkMerge() {
-    // Check if 3 adjacent segments share the same tier
+    // Check if 3 adjacent earned (non-base) segments share the same tier
     for (let i = 0; i <= this.segments.length - 3; i++) {
-      const t1 = this.segments[i].tier;
-      const t2 = this.segments[i + 1].tier;
-      const t3 = this.segments[i + 2].tier;
+      const s1 = this.segments[i];
+      const s2 = this.segments[i + 1];
+      const s3 = this.segments[i + 2];
+      if (s1.base || s2.base || s3.base) continue;
+      const t1 = s1.tier;
+      const t2 = s2.tier;
+      const t3 = s3.tier;
 
       if (t1 === t2 && t2 === t3 && t1 < TIER_COLORS.length) {
         // Upgrade middle segment tier and shrink surrounding two
@@ -154,7 +209,7 @@ class Snake {
     }
   }
 
-  draw(ctx, cellSize, isNokiaTheme = false, lerpFactor = 1.0) {
+  draw(ctx, cellSize, isNokiaTheme = false, lerpFactor = 1.0, isFever = false) {
     // Draw trail particles
     this.particles.forEach(p => p.draw(ctx, cellSize));
 
@@ -192,17 +247,21 @@ class Snake {
         }
       } else {
         // Neon / OLED Glowing Rounded Segment Style
-        const color = TIER_COLORS[(seg.tier - 1) % TIER_COLORS.length];
+        // Fever mode: cycle the skin palette along the body for maximum hype
+        const pal = this.palette || TIER_COLORS;
+        const color = isFever
+          ? pal[idx % pal.length]
+          : pal[(seg.tier - 1) % pal.length];
         
         if (this.isSurging) {
-          ctx.shadowColor = '#00f0ff';
+          ctx.shadowColor = pal[0];
           ctx.shadowBlur = 18;
         } else {
           ctx.shadowColor = color;
           ctx.shadowBlur = isHead ? 15 : 6;
         }
 
-        ctx.fillStyle = this.isSurging ? '#00f0ff' : color;
+        ctx.fillStyle = this.isSurging ? pal[0] : color;
         const radius = isHead ? 6 : 4;
         const margin = 1.5;
 

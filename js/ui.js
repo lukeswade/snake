@@ -6,7 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const game = new GameEngine('game-canvas');
   window.game = game; // Expose for audio.js dynamic percussion
 
-  lucide.createIcons();
+  // Icon refresh helper — survives the lucide CDN failing to load
+  const refreshIcons = () => window.lucide?.createIcons();
+  refreshIcons();
 
   // DOM Element References
   const scoreVal = document.getElementById('score-val');
@@ -21,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const pauseOverlay = document.getElementById('pause-overlay');
   const rewindOverlay = document.getElementById('rewind-overlay');
   const achievementsModal = document.getElementById('achievements-modal');
+  const leaderboardModal = document.getElementById('leaderboard-modal');
+  const countdownOverlay = document.getElementById('countdown-overlay');
+  const countdownNum = document.getElementById('countdown-num');
 
   const btnStart = document.getElementById('btn-start');
   const btnRestart = document.getElementById('btn-restart');
@@ -40,9 +45,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const finalMergesVal = document.getElementById('final-merges-val');
   const newHighBadge = document.getElementById('new-high-badge');
 
+  const buffBox = document.getElementById('buff-indicators');
+  const BUFF_META = {
+    magnet: { icon: '🧲', label: 'MAGNET' },
+    ghost: { icon: '👻', label: 'GHOST' },
+    slowmo: { icon: '🐌', label: 'SLOW-MO' }
+  };
+
   // Apply Stored Theme & Difficulty
   const currentTheme = storage.getTheme();
   document.documentElement.setAttribute('data-theme', currentTheme);
+
+  // Apply Persisted Audio Settings
+  if (storage.getSetting('muted')) {
+    audio.muted = true;
+    if (btnMute) {
+      btnMute.innerHTML = '<i data-lucide="volume-x"></i>';
+      btnMute.classList.add('disabled-emoji');
+    }
+  }
+  if (!storage.getSetting('bgm')) {
+    btnBgm?.classList.add('disabled-emoji'); // BGM itself starts on first game (needs a user gesture)
+  }
 
   const currentDiff = storage.getDifficulty();
   document.querySelectorAll('.difficulty-btn').forEach(btn => {
@@ -90,6 +114,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4000);
   }
 
+  /* 3-2-1-GO countdown. Holds the game paused so neither a fresh start nor a
+     resume drops you straight back into moving traffic. */
+  let countdownActive = false;
+  let countdownTimer = null;
+
+  function runCountdown(onDone) {
+    if (countdownTimer) clearTimeout(countdownTimer);
+    countdownActive = true;
+    game.inCountdown = true;
+    game.isPaused = true;
+    let n = 3;
+
+    const tick = () => {
+      if (!game.isRunning) { // Game ended mid-countdown — bail out
+        cancelCountdown();
+        return;
+      }
+      countdownNum.textContent = n > 0 ? n : 'GO!';
+      countdownNum.style.color = n > 0 ? 'var(--accent-cyan)' : 'var(--accent-lime)';
+      // Re-trigger the pop animation on each number
+      countdownNum.style.animation = 'none';
+      void countdownNum.offsetWidth;
+      countdownNum.style.animation = '';
+      countdownOverlay.classList.add('active');
+      audio.playClick();
+
+      if (n <= 0) {
+        countdownTimer = setTimeout(() => {
+          countdownOverlay.classList.remove('active');
+          countdownActive = false;
+          game.inCountdown = false;
+          game.isPaused = false;
+          game.lastStepTime = performance.now();
+          onDone?.();
+        }, 450);
+        return;
+      }
+      n--;
+      countdownTimer = setTimeout(tick, 600);
+    };
+    tick();
+  }
+
+  function cancelCountdown() {
+    if (countdownTimer) clearTimeout(countdownTimer);
+    countdownTimer = null;
+    countdownActive = false;
+    game.inCountdown = false;
+    countdownOverlay?.classList.remove('active');
+  }
+
   // Start & Restart Game
   function startGame() {
     startOverlay.classList.remove('active');
@@ -102,7 +177,14 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebarPanel?.classList.remove('open');
     
     audio.playClick();
+
+    // Resume persisted BGM preference on first (gesture-driven) game start
+    if (storage.getSetting('bgm') && !audio.bgmPlaying) {
+      audio.toggleBGM();
+    }
+
     game.start(game.mode);
+    runCountdown();
   }
 
   // Tap anywhere to start
@@ -114,6 +196,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Input Handling: Keyboard Controls
   window.addEventListener('keydown', (e) => {
+    // Open modals capture input
+    if (achievementsModal?.classList.contains('active')) {
+      if (e.key === 'Escape') closeAchievements();
+      return;
+    }
+    if (leaderboardModal?.classList.contains('active')) {
+      if (e.key === 'Escape') closeLeaderboard();
+      return;
+    }
+    if (countdownActive) return; // Ignore input mid-countdown
+
     // Handle keyboard quick-start if on start or game over screen
     if (!game.isRunning) {
       if (['Enter', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
@@ -221,12 +314,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnSurgeTouch?.addEventListener('click', () => { game.triggerSurge(); });
 
+  // Swipe Gestures on the Game Viewport (mobile alternative to the joystick)
+  const viewport = document.getElementById('game-viewport');
+  let swipeStart = null;
+  viewport?.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.d-pad') || e.target.closest('.surge-touch-btn') || e.target.closest('.overlay-screen')) return;
+    swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, { passive: true });
+
+  viewport?.addEventListener('touchmove', (e) => {
+    if (!swipeStart || !game.isRunning || game.isPaused || !game.snake) return;
+    const dx = e.touches[0].clientX - swipeStart.x;
+    const dy = e.touches[0].clientY - swipeStart.y;
+    if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      game.snake.setDirection(dx > 0 ? 1 : -1, 0);
+    } else {
+      game.snake.setDirection(0, dy > 0 ? 1 : -1);
+    }
+    // Re-anchor so a continuous drag can chain multiple turns
+    swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, { passive: true });
+
+  viewport?.addEventListener('touchend', () => { swipeStart = null; });
+
+  // Auto-Pause when the tab loses focus
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden || !game.isRunning) return;
+    if (countdownActive) {
+      // Background tabs throttle timers, which would stall the count-in.
+      // Drop straight to a normal pause instead.
+      cancelCountdown();
+      game.isPaused = true;
+      pauseOverlay.classList.add('active');
+      btnPause.innerHTML = '<i data-lucide="play"></i>';
+      refreshIcons();
+    } else if (!game.isPaused) {
+      togglePause();
+    }
+  });
+
+  /* Returns a running game to the start screen — used when a setting change
+     makes the in-progress run invalid (mode or grid change). */
+  function abortToStartScreen() {
+    cancelCountdown();
+    pauseOverlay.classList.remove('active');
+    gameOverOverlay.classList.remove('active');
+    rewindOverlay.classList.remove('active');
+    btnPause.classList.add('disabled');
+    btnPause.innerHTML = '<i data-lucide="pause"></i>';
+    startOverlay.classList.add('active');
+    refreshIcons();
+  }
+
   // Game Mode Selection Buttons
   document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      const wasRunning = game.isRunning;
       game.mode = btn.getAttribute('data-mode');
+      // Switching mode mid-run would apply the new mode's collision rules to a
+      // board built for the old one, so end the run cleanly instead.
+      if (wasRunning) {
+        game.reset();
+        abortToStartScreen();
+      }
       refreshScores();
       audio.playClick();
     });
@@ -245,7 +398,9 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.className = 'btn-primary difficulty-btn active';
 
       storage.setDifficulty(diff);
-      game.setDifficulty(diff);
+      const wasRunning = game.isRunning;
+      game.setDifficulty(diff); // Rebuilds the grid, ending any active game
+      if (wasRunning) abortToStartScreen();
       audio.playClick();
     });
   });
@@ -269,6 +424,17 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         pvpTimerBox.style.display = 'none';
       }
+
+      // Active buff pills with remaining time (~10 ticks per second)
+      if (buffBox) {
+        const pills = Object.entries(game.buffs)
+          .filter(([, ticks]) => ticks > 0)
+          .map(([key, ticks]) => `<span class="buff-pill">${BUFF_META[key].icon} ${BUFF_META[key].label} ${Math.ceil(ticks / 10)}s</span>`)
+          .join('');
+        if (buffBox.innerHTML !== pills) buffBox.innerHTML = pills;
+      }
+    } else if (buffBox && buffBox.innerHTML) {
+      buffBox.innerHTML = '';
     }
   }, 100);
 
@@ -285,15 +451,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Pause Controls
   const togglePause = () => {
     if (!game.isRunning) return;
-    game.togglePause();
+    // Don't allow unpausing out of the rewind death-prompt or mid-countdown
+    if (rewindOverlay?.classList.contains('active')) return;
+    if (countdownActive) return;
+
     if (game.isPaused) {
-      pauseOverlay.classList.add('active');
-      btnPause.innerHTML = '<i data-lucide="play"></i>';
-    } else {
+      // Resuming: hide the overlay and count back in
       pauseOverlay.classList.remove('active');
       btnPause.innerHTML = '<i data-lucide="pause"></i>';
+      runCountdown();
+    } else {
+      game.togglePause();
+      pauseOverlay.classList.add('active');
+      btnPause.innerHTML = '<i data-lucide="play"></i>';
     }
-    lucide.createIcons();
+    refreshIcons();
   };
 
   btnPause?.addEventListener('click', togglePause);
@@ -326,14 +498,143 @@ document.addEventListener('DOMContentLoaded', () => {
   // Mute & BGM Controls
   btnMute?.addEventListener('click', () => {
     const isMuted = audio.toggleMute();
+    storage.setSetting('muted', isMuted);
     btnMute.innerHTML = isMuted ? '<i data-lucide="volume-x"></i>' : '<i data-lucide="volume-2"></i>';
     btnMute.classList.toggle('disabled-emoji', isMuted);
-    lucide.createIcons();
+    refreshIcons();
   });
 
   btnBgm?.addEventListener('click', () => {
     const isBgmOn = audio.toggleBGM();
+    storage.setSetting('bgm', isBgmOn);
     btnBgm.classList.toggle('disabled-emoji', !isBgmOn);
+  });
+
+  // Snake Skin Picker
+  function renderSkins() {
+    const grid = document.getElementById('skin-grid');
+    if (!grid) return;
+    const unlocked = storage.data.unlockedSkins;
+    const selected = storage.data.selectedSkin;
+    grid.innerHTML = SKINS.map(s => {
+      const isUnlocked = unlocked.includes(s.id);
+      const cls = `skin-btn ${isUnlocked ? '' : 'locked'} ${selected === s.id ? 'selected' : ''}`;
+      const title = isUnlocked ? s.name : `${s.name} — LOCKED: ${s.desc}`;
+      const swatches = s.palette.slice(0, 3)
+        .map(c => `<span class="skin-swatch" style="background:${c}"></span>`).join('');
+      return `<button class="${cls}" data-skin="${s.id}" title="${title}">
+        <span>${isUnlocked ? s.icon : '🔒'}</span>
+        <span class="skin-swatches">${swatches}</span>
+      </button>`;
+    }).join('');
+
+    grid.querySelectorAll('.skin-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-skin');
+        if (storage.setSkin(id)) {
+          renderSkins();
+          audio.playClick();
+          showToast(`${getSkin(id).icon} Skin equipped: ${getSkin(id).name}`);
+        } else {
+          audio.playClick();
+          showToast(`🔒 ${getSkin(id).desc}`);
+        }
+      });
+    });
+  }
+  renderSkins();
+
+  storage.onSkinUnlocked = (skin) => {
+    audio.playAchievement();
+    showToast(`${skin.icon} New skin unlocked: ${skin.name}!`);
+    renderSkins();
+  };
+
+  // Leaderboard Modal
+  let lbMode = 'surge';
+
+  function renderLeaderboard() {
+    const list = document.getElementById('lb-list');
+    if (!list) return;
+    const entries = storage.getLeaderboard(lbMode);
+    if (!entries.length) {
+      list.innerHTML = `<div class="lb-empty">No runs recorded in this mode yet.</div>`;
+    } else {
+      list.innerHTML = entries.map((e, i) => `
+        <div class="lb-row top-${i + 1}">
+          <span class="lb-rank">#${i + 1}</span>
+          <span class="lb-score">${e.score.toLocaleString()}</span>
+          <span class="lb-date">${e.date || ''}</span>
+        </div>`).join('');
+    }
+    document.querySelectorAll('.lb-tab').forEach(t => {
+      t.classList.toggle('active', t.getAttribute('data-lb-mode') === lbMode);
+    });
+  }
+
+  function closeLeaderboard() {
+    leaderboardModal?.classList.remove('active');
+    audio.playClick();
+  }
+
+  document.getElementById('btn-leaderboard')?.addEventListener('click', () => {
+    if (game.isRunning && !game.isPaused && !countdownActive) togglePause();
+    lbMode = game.mode;
+    renderLeaderboard();
+    leaderboardModal?.classList.add('active');
+    sidebarPanel?.classList.remove('open');
+    audio.playClick();
+  });
+
+  document.getElementById('btn-close-leaderboard')?.addEventListener('click', closeLeaderboard);
+
+  leaderboardModal?.addEventListener('click', (e) => {
+    if (e.target === leaderboardModal) closeLeaderboard();
+  });
+
+  document.querySelectorAll('.lb-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      lbMode = tab.getAttribute('data-lb-mode');
+      renderLeaderboard();
+      audio.playClick();
+    });
+  });
+
+  // Achievements Modal
+  function renderAchievements() {
+    const grid = document.getElementById('achievements-grid');
+    if (!grid) return;
+    const unlockedIds = storage.data.unlockedAchievements;
+    grid.innerHTML = ACHIEVEMENTS.map(a => {
+      const unlocked = unlockedIds.includes(a.id);
+      return `<div class="ach-item ${unlocked ? 'unlocked' : 'locked'}">
+        <span class="ach-icon">${a.icon}</span>
+        <div>
+          <div class="ach-name">${a.name}</div>
+          <div class="ach-desc">${a.desc}</div>
+        </div>
+      </div>`;
+    }).join('');
+    const count = document.getElementById('ach-count');
+    if (count) count.textContent = `${unlockedIds.length}/${ACHIEVEMENTS.length} UNLOCKED`;
+  }
+
+  function closeAchievements() {
+    achievementsModal?.classList.remove('active');
+    audio.playClick();
+  }
+
+  document.getElementById('btn-achievements')?.addEventListener('click', () => {
+    if (game.isRunning && !game.isPaused) togglePause();
+    renderAchievements();
+    achievementsModal?.classList.add('active');
+    audio.playClick();
+  });
+
+  document.getElementById('btn-close-achievements')?.addEventListener('click', closeAchievements);
+
+  achievementsModal?.addEventListener('click', (e) => {
+    if (e.target === achievementsModal) closeAchievements();
   });
 
   // Theme Switcher Loop
@@ -351,7 +652,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Game Over Callback
   game.onGameOver = (res) => {
+    cancelCountdown();
     btnPause.classList.add('disabled');
+
+    // Record the run and surface its leaderboard placing
+    const rank = storage.addLeaderboardEntry(res.mode, res.score);
+    const rankBadge = document.getElementById('rank-badge');
+    if (rankBadge) {
+      if (rank) {
+        rankBadge.textContent = `🏅 LEADERBOARD #${rank}`;
+        rankBadge.style.display = 'inline-block';
+      } else {
+        rankBadge.style.display = 'none';
+      }
+    }
+
+    const title = document.getElementById('game-over-title');
+    if (title) {
+      if (res.mode === 'pvp') {
+        title.textContent = res.isWin ? 'VICTORY!' : 'DEFEAT';
+        // .overlay-title paints text via background-clip, so restyle the gradient
+        title.style.background = res.isWin
+          ? 'linear-gradient(135deg, #fff, var(--accent-gold))'
+          : 'linear-gradient(135deg, #fff, var(--accent-magenta))';
+        title.style.webkitBackgroundClip = 'text';
+      } else {
+        title.textContent = 'GAME OVER';
+        title.style.background = '';
+      }
+    }
+
     finalScoreVal.textContent = res.score.toLocaleString();
     finalHighVal.textContent = storage.getHighScore(res.mode).toLocaleString();
     finalMergesVal.textContent = res.merges;
@@ -364,6 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     refreshScores();
+    renderSkins(); // A run may have just unlocked a skin
     gameOverOverlay.classList.add('active');
   };
 
@@ -380,12 +711,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnShareText?.addEventListener('click', () => {
-    const shareStr = StatCardGenerator.copyShareText({
+    StatCardGenerator.copyShareText({
       score: game.score,
       mode: game.mode,
       merges: game.mergesCount
+    }).then(ok => {
+      showToast(ok ? '📋 Score copied to clipboard!' : '⚠️ Could not copy to clipboard');
     });
-    showToast('📋 Score copied to clipboard!');
     audio.playClick();
   });
 });
