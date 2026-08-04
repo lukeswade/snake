@@ -4,7 +4,7 @@
    game can be precached and played with no network at all.
    ========================================================================== */
 
-const VERSION = 'snake-surge-v1';
+const VERSION = 'snake-surge-v2';
 
 const PRECACHE = [
   './',
@@ -89,7 +89,10 @@ self.addEventListener('fetch', (event) => {
     const cache = await caches.open(VERSION);
     const hit = await cache.match(req);
 
-    const update = fetch(req).then(res => {
+    // Revalidate against the network, not the browser HTTP cache: the
+    // lukewade.net zone applies a 4-hour Browser Cache TTL to .js, which would
+    // otherwise let this background refresh return the same stale copy.
+    const update = fetch(new Request(req.url, { cache: 'reload' })).then(res => {
       if (res && res.ok) cache.put(req, res.clone());
       return res;
     }).catch(() => null);
