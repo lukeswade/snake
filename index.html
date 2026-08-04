@@ -7,6 +7,7 @@
   <meta name="description" content="Merge snakes, collect food, trigger hyper surges, and conquer the leaderboard in Snake Surge - the ultimate addictive retro-modern web arcade game!">
   <meta name="theme-color" content="#0a0c16">
   <link rel="stylesheet" href="css/styles.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
 
@@ -23,7 +24,7 @@
     <!-- Header Navigation -->
     <header>
       <div class="logo-group">
-        <div class="logo-icon">🐍</div>
+        <div class="logo-icon"><i data-lucide="zap" style="color: var(--accent-cyan); width: 32px; height: 32px;"></i></div>
         <h1 class="logo-title">
           SNAKE SURGE
           <span class="badge">SURGE v2.0</span>
@@ -31,10 +32,10 @@
       </div>
 
       <div class="nav-actions">
-        <button id="btn-theme" class="btn-icon" title="Switch Theme (Cyber / Nokia 3310 / OLED)">🎨</button>
-        <button id="btn-bgm" class="btn-icon" title="Toggle Synth BGM">🎵</button>
-        <button id="btn-mute" class="btn-icon" title="Toggle Mute Sound">🔊</button>
-        <button id="btn-pause" class="btn-icon disabled" title="Pause Game">⏸️</button>
+        <button id="btn-theme" class="btn-icon" title="Switch Theme"><i data-lucide="palette"></i></button>
+        <button id="btn-bgm" class="btn-icon" title="Toggle Synth BGM"><i data-lucide="music"></i></button>
+        <button id="btn-mute" class="btn-icon" title="Toggle Mute Sound"><i data-lucide="volume-2"></i></button>
+        <button id="btn-pause" class="btn-icon disabled" title="Pause Game"><i data-lucide="pause"></i></button>
       </div>
     </header>
 
@@ -80,7 +81,7 @@
           <div class="d-pad" id="joystick-base">
             <div class="joystick-knob" id="joystick-knob"></div>
           </div>
-          <button class="surge-touch-btn" id="btn-surge-touch">SURGE⚡</button>
+          <button class="surge-touch-btn" id="btn-surge-touch">SURGE <i data-lucide="zap" style="width: 16px; height: 16px; vertical-align: middle;"></i></button>
         </div>
 
         <!-- Start Overlay Screen -->
@@ -92,7 +93,7 @@
             </p>
 
             <button class="btn-primary" id="btn-start">
-              <span>PLAY NOW</span> ➔
+              <span>PLAY NOW</span> <i data-lucide="arrow-right"></i>
             </button>
             <p style="font-size: 0.75rem; color: var(--text-muted);">Controls: WASD / Arrow Keys | Spacebar to Surge</p>
           </div>
@@ -114,15 +115,15 @@
               </div>
             </div>
 
-            <span id="new-high-badge" class="badge" style="background: var(--accent-gold); color: #000; display: none; padding: 6px 14px; font-weight: 800;">🏆 NEW HIGH SCORE!</span>
+            <span id="new-high-badge" class="badge" style="background: var(--accent-gold); color: #000; display: none; padding: 6px 14px; font-weight: 800;"><i data-lucide="trophy" style="width: 16px; height: 16px; vertical-align: middle;"></i> NEW HIGH SCORE!</span>
 
             <div style="display: flex; gap: 10px; width: 100%;">
-              <button class="btn-secondary" id="btn-share-card">📸 Download Stat Card</button>
-              <button class="btn-secondary" id="btn-share-text">📋 Copy Share Link</button>
+              <button class="btn-secondary" id="btn-share-card"><i data-lucide="camera" style="width: 16px; height: 16px;"></i> Download Stat Card</button>
+              <button class="btn-secondary" id="btn-share-text"><i data-lucide="clipboard-copy" style="width: 16px; height: 16px;"></i> Copy Share Link</button>
             </div>
 
             <button class="btn-primary" id="btn-restart">
-              <span>PLAY AGAIN</span> ↺
+              <span>PLAY AGAIN</span> <i data-lucide="rotate-ccw"></i>
             </button>
           </div>
         </div>
@@ -141,7 +142,7 @@
             <h2 class="overlay-title" style="color: var(--accent-cyan); font-size: 2rem;">CRASH IMMINENT!</h2>
             <p style="margin-bottom: 20px; font-size: 1.1rem; text-align: center;">You have enough Surge to reverse time.</p>
             <button class="btn-primary" id="btn-rewind" style="background: var(--accent-cyan); color: #000; box-shadow: 0 0 20px var(--accent-cyan);">
-              <span>REVERSE TIME</span> ⏪
+              <span>REVERSE TIME</span> <i data-lucide="rewind"></i>
             </button>
             <p style="margin-top: 15px; font-size: 0.9rem; color: #aaa;">(Costs 50 Surge) Or press [R]</p>
             <button class="btn-secondary" id="btn-skip-rewind" style="margin-top: 20px;">Accept Fate (Die)</button>
@@ -154,25 +155,25 @@
       <aside class="sidebar-panel">
 
         <div>
-          <span class="panel-section-title">🎮 SELECT GAME MODE</span>
+          <span class="panel-section-title"><i data-lucide="gamepad-2" style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 6px;"></i> SELECT GAME MODE</span>
           <div class="mode-selector" style="margin-top: 10px;">
             <button class="mode-btn active" data-mode="surge">
               <div>
-                <div class="mode-name">⚡ Merge & Surge</div>
+                <div class="mode-name"><i data-lucide="zap" style="width: 16px; height: 16px; vertical-align: text-bottom; color: var(--accent-cyan);"></i> Merge & Surge</div>
                 <div class="mode-desc">Merge 3 segments & trigger hyper surges</div>
               </div>
             </button>
 
             <button class="mode-btn" data-mode="classic">
               <div>
-                <div class="mode-name">🐍 Classic Survival</div>
+                <div class="mode-name"><i data-lucide="target" style="width: 16px; height: 16px; vertical-align: text-bottom; color: var(--accent-lime);"></i> Classic Survival</div>
                 <div class="mode-desc">Pure Nokia 3310 high score survival</div>
               </div>
             </button>
 
             <button class="mode-btn" data-mode="pvp">
               <div>
-                <div class="mode-name">⚔️ 60s PvP Blitz</div>
+                <div class="mode-name"><i data-lucide="swords" style="width: 16px; height: 16px; vertical-align: text-bottom; color: var(--accent-magenta);"></i> 60s PvP Blitz</div>
                 <div class="mode-desc">Compete live against 2 AI snakes</div>
               </div>
             </button>
@@ -182,7 +183,7 @@
         <hr style="border: none; border-top: 1px solid var(--border-glass);">
 
         <div>
-          <span class="panel-section-title">📊 CAREER STATS</span>
+          <span class="panel-section-title"><i data-lucide="bar-chart-2" style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 6px;"></i> CAREER STATS</span>
           <div class="stats-grid" style="margin-top: 10px;">
             <div class="stat-item">
               <span class="stat-val" id="stat-food">0</span>

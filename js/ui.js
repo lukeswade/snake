@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const game = new GameEngine('game-canvas');
   window.game = game; // Expose for audio.js dynamic percussion
 
+  lucide.createIcons();
+
   // DOM Element References
   const scoreVal = document.getElementById('score-val');
   const highVal = document.getElementById('high-val');
@@ -243,12 +245,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Pause Controls
   const togglePause = () => {
     if (!game.isRunning) return;
-    game.isPaused = !game.isPaused;
+    game.togglePause();
     if (game.isPaused) {
       pauseOverlay.classList.add('active');
+      btnPause.innerHTML = '<i data-lucide="play"></i>';
     } else {
       pauseOverlay.classList.remove('active');
+      btnPause.innerHTML = '<i data-lucide="pause"></i>';
     }
+    lucide.createIcons();
   };
 
   btnPause?.addEventListener('click', togglePause);
@@ -281,7 +286,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Mute & BGM Controls
   btnMute?.addEventListener('click', () => {
     const isMuted = audio.toggleMute();
-    btnMute.textContent = isMuted ? '🔇' : '🔊';
+    btnMute.innerHTML = isMuted ? '<i data-lucide="volume-x"></i>' : '<i data-lucide="volume-2"></i>';
+    btnMute.classList.toggle('disabled-emoji', isMuted);
+    lucide.createIcons();
   });
 
   btnBgm?.addEventListener('click', () => {
