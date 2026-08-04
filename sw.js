@@ -4,21 +4,26 @@
    game can be precached and played with no network at all.
    ========================================================================== */
 
-const VERSION = 'snake-surge-v2';
+/* ASSET_V must match the ?v= token on the <script>/<link> tags in index.html.
+   The lukewade.net zone force-caches .css/.js in the browser for 4 hours, so
+   the token — not headers — is what guarantees a returning visitor gets new
+   code. Bump both together on every deploy that changes CSS or JS. */
+const ASSET_V = '4';
+const VERSION = `snake-surge-v3-assets${ASSET_V}`;
 
 const PRECACHE = [
   './',
   'index.html',
   'manifest.json',
-  'css/styles.css',
-  'js/icons.js',
-  'js/audio.js',
-  'js/storage.js',
-  'js/snake.js',
-  'js/aiSnake.js',
-  'js/game.js',
-  'js/cardGenerator.js',
-  'js/ui.js',
+  `css/styles.css?v=${ASSET_V}`,
+  `js/icons.js?v=${ASSET_V}`,
+  `js/audio.js?v=${ASSET_V}`,
+  `js/storage.js?v=${ASSET_V}`,
+  `js/snake.js?v=${ASSET_V}`,
+  `js/aiSnake.js?v=${ASSET_V}`,
+  `js/game.js?v=${ASSET_V}`,
+  `js/cardGenerator.js?v=${ASSET_V}`,
+  `js/ui.js?v=${ASSET_V}`,
   'favicon.png',
   'apple-touch-icon.png',
   'icon-192.png',
