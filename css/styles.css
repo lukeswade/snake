@@ -320,6 +320,10 @@ body {
 
 button {
   font-family: inherit;
+  /* Without this, buttons fall back to the UA default text colour (black),
+     which is invisible on the dark panels — it made the game-mode card
+     titles render at 1.08:1 contrast. */
+  color: inherit;
   cursor: pointer;
   border: none;
   outline: none;
@@ -393,8 +397,11 @@ button {
   animation-delay: -10s;
 }
 
-/* Mobile Menu Toggle - Hidden on Desktop */
-.mobile-menu-toggle {
+/* Mobile Menu Toggle - Hidden on Desktop.
+   Qualified with .btn-icon so this wins on specificity: .btn-icon sets
+   display:flex further down the file and would otherwise override it,
+   leaving a visible button that toggles a drawer that isn't there. */
+.btn-icon.mobile-menu-toggle {
   display: none;
 }
 
@@ -986,7 +993,7 @@ main {
 }
 
 @media (max-width: 900px) {
-  .mobile-menu-toggle {
+  .btn-icon.mobile-menu-toggle {
     display: flex;
   }
   

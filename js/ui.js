@@ -118,13 +118,30 @@ document.addEventListener('DOMContentLoaded', () => {
      resume drops you straight back into moving traffic. */
   let countdownActive = false;
   let countdownTimer = null;
+  let finishCountdown = null; // set while a count-in is running; skips it
 
-  function runCountdown(onDone) {
+  /* steps = how many numbers before "GO!". A fresh game gets a full 3, but a
+     resume only gets 1 — waiting three seconds every time you unpause (or
+     every time you tab away and back) is friction, not drama. Any input
+     skips the rest. */
+  function runCountdown(steps = 3) {
     if (countdownTimer) clearTimeout(countdownTimer);
     countdownActive = true;
     game.inCountdown = true;
     game.isPaused = true;
-    let n = 3;
+    let n = steps;
+
+    const finish = () => {
+      if (countdownTimer) clearTimeout(countdownTimer);
+      countdownTimer = null;
+      countdownOverlay.classList.remove('active');
+      countdownActive = false;
+      game.inCountdown = false;
+      game.isPaused = false;
+      game.lastStepTime = performance.now();
+      finishCountdown = null;
+    };
+    finishCountdown = finish;
 
     const tick = () => {
       if (!game.isRunning) { // Game ended mid-countdown — bail out
@@ -141,18 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
       audio.playClick();
 
       if (n <= 0) {
-        countdownTimer = setTimeout(() => {
-          countdownOverlay.classList.remove('active');
-          countdownActive = false;
-          game.inCountdown = false;
-          game.isPaused = false;
-          game.lastStepTime = performance.now();
-          onDone?.();
-        }, 450);
+        countdownTimer = setTimeout(finish, 380);
         return;
       }
       n--;
-      countdownTimer = setTimeout(tick, 600);
+      countdownTimer = setTimeout(tick, 520);
     };
     tick();
   }
@@ -162,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
     countdownTimer = null;
     countdownActive = false;
     game.inCountdown = false;
+    finishCountdown = null;
     countdownOverlay?.classList.remove('active');
   }
 
@@ -181,6 +192,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Resume persisted BGM preference on first (gesture-driven) game start
     if (storage.getSetting('bgm') && !audio.bgmPlaying) {
       audio.toggleBGM();
+    }
+
+    // A mode picked mid-run takes effect here
+    if (pendingMode) {
+      game.mode = pendingMode;
+      pendingMode = null;
+      refreshScores();
     }
 
     game.start(game.mode);
@@ -205,7 +223,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Escape') closeLeaderboard();
       return;
     }
-    if (countdownActive) return; // Ignore input mid-countdown
+    // Mid-countdown: any play input skips the rest of the count, then falls
+    // through below so a direction key also steers on the same press.
+    if (countdownActive) {
+      const skipKeys = ['Enter', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+                        'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'];
+      if (!skipKeys.includes(e.key)) return;
+      e.preventDefault();
+      finishCountdown?.();
+    }
 
     // Handle keyboard quick-start if on start or game over screen
     if (!game.isRunning) {
@@ -319,8 +345,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let swipeStart = null;
   viewport?.addEventListener('touchstart', (e) => {
     if (e.target.closest('.d-pad') || e.target.closest('.surge-touch-btn') || e.target.closest('.overlay-screen')) return;
+    if (countdownActive) finishCountdown?.(); // tap to skip the count-in
     swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   }, { passive: true });
+
+  // Click to skip the count-in on desktop too
+  viewport?.addEventListener('click', (e) => {
+    if (!countdownActive) return;
+    if (e.target.closest('.overlay-screen') || e.target.closest('button')) return;
+    finishCountdown?.();
+  });
 
   viewport?.addEventListener('touchmove', (e) => {
     if (!swipeStart || !game.isRunning || game.isPaused || !game.snake) return;
@@ -368,19 +402,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Game Mode Selection Buttons
+  let pendingMode = null; // chosen mid-run, applied on the next game
   document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const wasRunning = game.isRunning;
-      game.mode = btn.getAttribute('data-mode');
-      // Switching mode mid-run would apply the new mode's collision rules to a
-      // board built for the old one, so end the run cleanly instead.
-      if (wasRunning) {
-        game.reset();
-        abortToStartScreen();
+      const mode = btn.getAttribute('data-mode');
+
+      // Applying a new mode's collision rules to a board built for the old one
+      // is incoherent, but killing a run in progress to avoid that is worse —
+      // so queue it for the next game and leave the current one alone.
+      if (game.isRunning) {
+        pendingMode = mode;
+        const label = btn.querySelector('.mode-name')?.textContent.trim() || mode;
+        showToast(`🎮 ${label} starts on your next game`);
+      } else {
+        game.mode = mode;
+        pendingMode = null;
+        refreshScores();
       }
-      refreshScores();
       audio.playClick();
     });
   });
@@ -459,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Resuming: hide the overlay and count back in
       pauseOverlay.classList.remove('active');
       btnPause.innerHTML = '<i data-lucide="pause"></i>';
-      runCountdown();
+      runCountdown(1);
     } else {
       game.togglePause();
       pauseOverlay.classList.add('active');

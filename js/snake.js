@@ -103,15 +103,26 @@ class Snake {
   }
 
   setDirection(dirX, dirY) {
-    // Validate against the last queued direction (or current heading) so a
-    // rapid up→left entered within one tick plays out as two turns.
-    const last = this.inputQueue.length
-      ? this.inputQueue[this.inputQueue.length - 1]
-      : this.direction;
-    // Prevent 180-degree instant self-reversal and duplicate inputs
-    if (last.x + dirX === 0 && last.y + dirY === 0) return;
-    if (last.x === dirX && last.y === dirY) return;
-    if (this.inputQueue.length < 2) {
+    const MAX_QUEUED = 2;
+    const full = this.inputQueue.length >= MAX_QUEUED;
+
+    // A turn must be legal relative to whichever direction immediately precedes
+    // it. Appending puts it after the last queued turn; when the queue is full
+    // we overwrite that last slot instead, so it follows the one before it.
+    // Validating against the wrong one silently rejects legal inputs.
+    const predecessor = full
+      ? this.inputQueue[MAX_QUEUED - 2]
+      : (this.inputQueue[this.inputQueue.length - 1] || this.direction);
+
+    if (predecessor.x === dirX && predecessor.y === dirY) return;         // duplicate
+    if (predecessor.x + dirX === 0 && predecessor.y + dirY === 0) return; // 180° reversal
+
+    if (full) {
+      // Overwrite rather than drop: dropping means a player correcting course
+      // has their newest intent ignored in favour of a stale one, which reads
+      // as the game not listening.
+      this.inputQueue[MAX_QUEUED - 1] = { x: dirX, y: dirY };
+    } else {
       this.inputQueue.push({ x: dirX, y: dirY });
     }
   }

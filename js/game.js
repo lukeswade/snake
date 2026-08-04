@@ -59,16 +59,18 @@ class GameEngine {
     switch (diff) {
       case 'easy':
         this.cellSize = 30;
-        this.stepInterval = 120;
+        this.stepInterval = 130;
         break;
       case 'medium':
         this.cellSize = 25;
-        this.stepInterval = 105;
+        this.stepInterval = 115;
         break;
       case 'hard':
       default:
+        // 100ms is the game's original tick rate — Hard should match the
+        // speed the game already shipped with, not be quietly faster.
         this.cellSize = 20;
-        this.stepInterval = 90;
+        this.stepInterval = 100;
     }
   }
 
