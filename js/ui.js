@@ -284,60 +284,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Mobile Virtual Joystick Touch Controls
-  const joystickBase = document.getElementById('joystick-base');
-  const joystickKnob = document.getElementById('joystick-knob');
-  
-  if (joystickBase && joystickKnob) {
-    let joystickActive = false;
-    let baseCenter = { x: 0, y: 0 };
-    const maxDist = 40; // Max radius for knob
-
-    const handleJoystickStart = (e) => {
-      joystickActive = true;
-      const rect = joystickBase.getBoundingClientRect();
-      baseCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-      handleJoystickMove(e);
-    };
-
-    const handleJoystickMove = (e) => {
-      if (!joystickActive) return;
-      e.preventDefault();
-      
-      const touch = e.touches ? e.touches[0] : e;
-      const dx = touch.clientX - baseCenter.x;
-      const dy = touch.clientY - baseCenter.y;
-      const dist = Math.min(Math.sqrt(dx*dx + dy*dy), maxDist);
-      const angle = Math.atan2(dy, dx);
-      
-      const knobX = Math.cos(angle) * dist;
-      const knobY = Math.sin(angle) * dist;
-      
-      joystickKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
-
-      // Map to snake direction if distance is significant enough
-      if (dist > 15) {
-        if (Math.abs(dx) > Math.abs(dy)) {
-          game.snake.setDirection(dx > 0 ? 1 : -1, 0);
-        } else {
-          game.snake.setDirection(0, dy > 0 ? 1 : -1);
-        }
-      }
-    };
-
-    const handleJoystickEnd = () => {
-      joystickActive = false;
-      joystickKnob.style.transform = `translate(0px, 0px)`;
-    };
-
-    joystickBase.addEventListener('touchstart', handleJoystickStart, {passive: false});
-    joystickBase.addEventListener('touchmove', handleJoystickMove, {passive: false});
-    joystickBase.addEventListener('touchend', handleJoystickEnd);
-    joystickBase.addEventListener('mousedown', handleJoystickStart);
-    document.addEventListener('mousemove', handleJoystickMove);
-    document.addEventListener('mouseup', handleJoystickEnd);
-  }
-
   // Canvas Directional Tapping
   const gameCanvas = document.getElementById('game-canvas');
   gameCanvas?.addEventListener('pointerdown', (e) => {
