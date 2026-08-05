@@ -619,7 +619,14 @@ class GameEngine {
     const isNokia = storage.getTheme() === 'nokia';
 
     // Draw Grid Lines
-    this.ctx.strokeStyle = isNokia ? 'rgba(26, 32, 28, 0.15)' : 'rgba(0, 240, 255, 0.05)';
+    let gridColor = 'rgba(0, 240, 255, 0.05)';
+    switch (storage.getTheme()) {
+      case 'gameboy': gridColor = 'rgba(15, 56, 15, 0.2)'; break;
+      case 'nokia': gridColor = 'rgba(26, 32, 28, 0.15)'; break;
+      case 'synthwave': gridColor = 'rgba(255, 0, 127, 0.15)'; break;
+      case 'oled': gridColor = 'rgba(255, 255, 255, 0.04)'; break;
+    }
+    this.ctx.strokeStyle = gridColor;
     this.ctx.lineWidth = 1;
 
     for (let c = 0; c <= this.cols; c++) {
