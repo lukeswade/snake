@@ -8,7 +8,7 @@
    The lukewade.net zone force-caches .css/.js in the browser for 4 hours, so
    the token — not headers — is what guarantees a returning visitor gets new
    code. Bump both together on every deploy that changes CSS or JS. */
-const ASSET_V = '5';
+const ASSET_V = '6';
 const VERSION = `snake-surge-v4-assets${ASSET_V}`;
 
 const PRECACHE = [
@@ -24,7 +24,7 @@ const PRECACHE = [
   `js/game.js?v=${ASSET_V}`,
   `js/cardGenerator.js?v=${ASSET_V}`,
   `js/ui.js?v=${ASSET_V}`,
-  'favicon.png',
+  'icon.svg',
   'apple-touch-icon.png',
   'icon-192.png',
   'icon-512.png',
@@ -48,7 +48,6 @@ self.addEventListener('install', (event) => {
         console.warn('[sw] precache miss:', url);
       }
     }));
-    await self.skipWaiting();
   })());
 });
 
