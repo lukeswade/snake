@@ -347,29 +347,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const tapX = e.clientX - rect.left;
     const tapY = e.clientY - rect.top;
 
-    // Convert CSS tap coordinates to internal grid coordinates
-    const scaleX = game.canvas.width / rect.width;
-    const scaleY = game.canvas.height / rect.height;
-    
-    const internalTapX = tapX * scaleX;
-    const internalTapY = tapY * scaleY;
+    const dx = (rect.width - game.cols * game.cellSize) / 2;
+    const dy = (rect.height - game.rows * game.cellSize) / 2;
 
-    const headX = game.snake.segments[0].x * game.cellSize;
-    const headY = game.snake.segments[0].y * game.cellSize;
+    const headX = (game.snake.segments[0].x + 0.5) * game.cellSize + dx;
+    const headY = (game.snake.segments[0].y + 0.5) * game.cellSize + dy;
 
-    const dx = game.snake.dx;
-    const dy = game.snake.dy;
+    const snakeDx = game.snake.dx;
+    const snakeDy = game.snake.dy;
 
-    if (dx !== 0) {
+    if (snakeDx !== 0) {
       // Moving horizontally, tap above or below
-      if (internalTapY < headY) {
+      if (tapY < headY) {
         game.snake.setDirection(0, -1);
       } else {
         game.snake.setDirection(0, 1);
       }
-    } else if (dy !== 0) {
+    } else if (snakeDy !== 0) {
       // Moving vertically, tap left or right
-      if (internalTapX < headX) {
+      if (tapX < headX) {
         game.snake.setDirection(-1, 0);
       } else {
         game.snake.setDirection(1, 0);
