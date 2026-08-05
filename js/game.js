@@ -5,7 +5,7 @@
 class GameEngine {
   constructor(canvasId) {
     this.canvas = document.getElementById(canvasId);
-    this.ctx = this.canvas.getContext('2d', { alpha: false });
+    this.ctx = this.canvas.getContext('2d');
     
     const diff = storage.getDifficulty();
     this.setCellSizeFromDifficulty(diff);
