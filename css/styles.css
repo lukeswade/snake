@@ -219,9 +219,9 @@
 
 /* Theme 2: Nokia 3310 Monocolor LCD */
 [data-theme="nokia"] {
-  --bg-primary: #879C7B;
-  --bg-secondary: #9DB490;
-  --bg-glass: rgba(135, 156, 123, 0.9);
+  --bg-primary: #A1B596;
+  --bg-secondary: #B1C7A5;
+  --bg-glass: rgba(161, 181, 150, 0.9);
   --border-glass: rgba(26, 32, 28, 0.4);
 
   --accent-cyan: #1a201c;

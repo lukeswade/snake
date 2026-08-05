@@ -651,7 +651,7 @@ class GameEngine {
 
       this.ctx.save();
       if (isNokia) {
-        this.ctx.fillStyle = '#1a201c';
+        this.ctx.fillStyle = '#5a6d51'; // Green-grey hue to distinguish from obstacles
         this.ctx.fillRect(px + 4, py + 4, this.cellSize - 8, this.cellSize - 8);
       } else if (['magnet', 'ghost', 'slowmo'].includes(f.type)) {
         this.ctx.fillStyle = '#00f0ff';
