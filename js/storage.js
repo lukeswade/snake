@@ -38,7 +38,7 @@ class StorageManager {
       selectedDifficulty: 'hard', // Default to current behavior
       settings: {
         muted: false,
-        bgm: false
+        bgm: true
       },
       selectedSkin: 'cyber',
       unlockedSkins: ['cyber'],
