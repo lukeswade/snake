@@ -619,7 +619,7 @@ class GameEngine {
     const isNokia = storage.getTheme() === 'nokia';
 
     // Draw Grid Lines
-    this.ctx.strokeStyle = isNokia ? 'rgba(15, 56, 15, 0.1)' : 'rgba(0, 240, 255, 0.05)';
+    this.ctx.strokeStyle = isNokia ? 'rgba(26, 32, 28, 0.15)' : 'rgba(0, 240, 255, 0.05)';
     this.ctx.lineWidth = 1;
 
     for (let c = 0; c <= this.cols; c++) {
@@ -636,7 +636,7 @@ class GameEngine {
     }
 
     // Draw Obstacles
-    this.ctx.fillStyle = isNokia ? '#0f380f' : 'rgba(255, 255, 255, 0.2)';
+    this.ctx.fillStyle = isNokia ? '#1a201c' : 'rgba(255, 255, 255, 0.2)';
     this.ctx.shadowBlur = 0;
     this.obstacles.forEach(obs => {
       this.ctx.beginPath();
@@ -651,7 +651,7 @@ class GameEngine {
 
       this.ctx.save();
       if (isNokia) {
-        this.ctx.fillStyle = '#0f380f';
+        this.ctx.fillStyle = '#1a201c';
         this.ctx.fillRect(px + 4, py + 4, this.cellSize - 8, this.cellSize - 8);
       } else if (['magnet', 'ghost', 'slowmo'].includes(f.type)) {
         this.ctx.fillStyle = '#00f0ff';

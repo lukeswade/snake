@@ -129,18 +129,28 @@ class AISnake {
       const py = interpY * cellSize;
 
       ctx.save();
-      ctx.fillStyle = isHead ? this.color : '#64748b';
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = isHead ? 10 : 2;
+      if (isNokiaTheme) {
+        ctx.fillStyle = isHead ? '#1a201c' : '#2c3630';
+        ctx.shadowBlur = 0;
+        ctx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
+        if (isHead) {
+          ctx.fillStyle = '#879C7B';
+          ctx.fillRect(px + 4, py + 4, 3, 3);
+        }
+      } else {
+        ctx.fillStyle = isHead ? this.color : '#64748b';
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = isHead ? 10 : 2;
 
-      ctx.beginPath();
-      ctx.roundRect(px + 1.5, py + 1.5, cellSize - 3, cellSize - 3, isHead ? 6 : 3);
-      ctx.fill();
+        ctx.beginPath();
+        ctx.roundRect(px + 1.5, py + 1.5, cellSize - 3, cellSize - 3, isHead ? 6 : 3);
+        ctx.fill();
 
-      if (isHead) {
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '10px sans-serif';
-        ctx.fillText('🤖', px + 2, py + cellSize - 3);
+        if (isHead) {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '10px sans-serif';
+          ctx.fillText('🤖', px + 2, py + cellSize - 3);
+        }
       }
       ctx.restore();
     });

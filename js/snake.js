@@ -250,7 +250,7 @@ class Snake {
 
       if (isNokiaTheme) {
         // Nokia 3310 Dot-Matrix pixel style
-        ctx.fillStyle = isHead ? '#0f380f' : '#306230';
+        ctx.fillStyle = isHead ? '#1a201c' : '#2c3630';
         ctx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
         if (isHead) {
           ctx.fillStyle = '#9bbc0f';
