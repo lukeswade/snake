@@ -353,8 +353,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const headX = (game.snake.segments[0].x + 0.5) * game.cellSize + dx;
     const headY = (game.snake.segments[0].y + 0.5) * game.cellSize + dy;
 
-    const snakeDx = game.snake.dx;
-    const snakeDy = game.snake.dy;
+    const snakeDx = game.snake.direction.x;
+    const snakeDy = game.snake.direction.y;
 
     if (snakeDx !== 0) {
       // Moving horizontally, tap above or below
