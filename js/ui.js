@@ -338,6 +338,45 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mouseup', handleJoystickEnd);
   }
 
+  // Canvas Directional Tapping
+  const gameCanvas = document.getElementById('game-canvas');
+  gameCanvas?.addEventListener('pointerdown', (e) => {
+    if (!game.isRunning || game.isPaused || game.isGameOver) return;
+    
+    const rect = gameCanvas.getBoundingClientRect();
+    const tapX = e.clientX - rect.left;
+    const tapY = e.clientY - rect.top;
+
+    // Convert CSS tap coordinates to internal grid coordinates
+    const scaleX = game.canvas.width / rect.width;
+    const scaleY = game.canvas.height / rect.height;
+    
+    const internalTapX = tapX * scaleX;
+    const internalTapY = tapY * scaleY;
+
+    const headX = game.snake.segments[0].x * game.cellSize;
+    const headY = game.snake.segments[0].y * game.cellSize;
+
+    const dx = game.snake.dx;
+    const dy = game.snake.dy;
+
+    if (dx !== 0) {
+      // Moving horizontally, tap above or below
+      if (internalTapY < headY) {
+        game.snake.setDirection(0, -1);
+      } else {
+        game.snake.setDirection(0, 1);
+      }
+    } else if (dy !== 0) {
+      // Moving vertically, tap left or right
+      if (internalTapX < headX) {
+        game.snake.setDirection(-1, 0);
+      } else {
+        game.snake.setDirection(1, 0);
+      }
+    }
+  });
+
   btnSurgeTouch?.addEventListener('click', () => { game.triggerSurge(); });
 
   // Swipe Gestures on the Game Viewport (mobile alternative to the joystick)
