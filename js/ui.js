@@ -51,10 +51,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const buffBox = document.getElementById('buff-indicators');
   const BUFF_META = {
-    magnet: { icon: '🧲', label: 'MAGNET' },
-    ghost: { icon: '👻', label: 'GHOST' },
-    slowmo: { icon: '🐌', label: 'SLOW-MO' }
+    magnet: { icon: '<i data-lucide="magnet" style="width: 14px; vertical-align: text-bottom; color: var(--accent-cyan);"></i>', label: 'MAGNET' },
+    ghost: { icon: '<i data-lucide="ghost" style="width: 14px; vertical-align: text-bottom; color: #fff;"></i>', label: 'GHOST' },
+    slowmo: { icon: '<i data-lucide="timer" style="width: 14px; vertical-align: text-bottom; color: var(--accent-lime);"></i>', label: 'SLOW-MO' }
   };
+
+  function closeAllModals() {
+    achievementsModal.classList.remove('active');
+    howtoModal.classList.remove('active');
+    leaderboardModal.classList.remove('active');
+  }
 
   // Apply Stored Theme & Difficulty
   const currentTheme = storage.getTheme();
@@ -613,6 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-leaderboard')?.addEventListener('click', () => {
     if (game.isRunning && !game.isPaused && !countdownActive) togglePause();
+    closeAllModals();
     lbMode = game.mode;
     renderLeaderboard();
     leaderboardModal?.classList.add('active');
@@ -626,8 +633,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // How To / Snake Whispering Modal
   btnHowto?.addEventListener('click', () => {
+    closeAllModals();
     audio.playClick();
     howtoModal.classList.add('active');
+    // Ensure new icons render if fetched dynamically
+    window.lucide?.createIcons();
   });
 
   btnCloseHowto?.addEventListener('click', () => {
@@ -672,10 +682,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.getElementById('btn-achievements')?.addEventListener('click', () => {
-    if (game.isRunning && !game.isPaused) togglePause();
+    closeAllModals();
+    audio.playClick();
     renderAchievements();
     achievementsModal?.classList.add('active');
-    audio.playClick();
   });
 
   document.getElementById('btn-close-achievements')?.addEventListener('click', closeAchievements);
