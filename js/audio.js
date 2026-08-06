@@ -24,7 +24,7 @@ class SoundEngine {
         this.filter.frequency.value = 20000; // Open filter by default
         
         this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.value = 0.6; // Master volume normalization to avoid clipping
+        this.masterGain.gain.value = 0.6; // Master volume normalization
         
         this.filter.connect(this.masterGain);
         this.masterGain.connect(this.ctx.destination);
@@ -328,6 +328,12 @@ class SoundEngine {
     if (this.bgmTimer) {
       clearInterval(this.bgmTimer);
       this.bgmTimer = null;
+    }
+  }
+
+  setVolume(value) {
+    if (this.masterGain) {
+      this.masterGain.gain.value = value;
     }
   }
 

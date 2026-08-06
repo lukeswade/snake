@@ -60,6 +60,7 @@
 
       <div class="nav-actions">
         <button id="btn-achievements" class="btn-icon" title="Achievements"><i data-lucide="trophy"></i></button>
+        <button id="btn-howto" class="btn-icon" title="Snake Whispering (How to Play)"><i data-lucide="book-open"></i></button>
         <button id="btn-theme" class="btn-icon" title="Switch Theme"><i data-lucide="palette"></i></button>
         <button id="btn-bgm" class="btn-icon" title="Toggle Synth BGM"><i data-lucide="music"></i></button>
         <button id="btn-mute" class="btn-icon" title="Toggle Mute Sound"><i data-lucide="volume-2"></i></button>
@@ -212,6 +213,45 @@
           </div>
         </div>
 
+        <!-- Snake Whispering (How-To) Modal -->
+        <div class="overlay-screen" id="howto-modal">
+          <div class="overlay-card" style="max-height: 80vh; overflow-y: auto; text-align: left;">
+            <h2 class="overlay-title" style="font-size: 1.8rem; text-align: center;">SNAKE WHISPERING</h2>
+            <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">The Ultimate Guide to Snake Surge</p>
+
+            <h3 style="color: var(--accent-cyan); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="gamepad-2" style="width: 18px; vertical-align: bottom;"></i> Game Modes</h3>
+            <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6;">
+              <li><strong style="color: var(--accent-cyan);">Merge & Surge:</strong> The core modern experience. Collect tiered food (Tiers 1-6) to build your snake. Merging 3 segments of the same tier consolidates them and fills your Surge meter. Press SPACE (or tap SURGE on mobile) to activate a Hyper-Surge for invincibility!</li>
+              <li><strong style="color: var(--accent-lime);">Classic Survival:</strong> Retro rules. One food type. If you hit the wall or yourself, you die. No surges, no merging. Pure high score chasing.</li>
+              <li><strong style="color: var(--accent-magenta);">PvP Blitz:</strong> 60 seconds on the clock. Compete against two AI snakes for the highest score. Cut them off to steal their segments!</li>
+            </ul>
+
+            <h3 style="color: var(--accent-gold); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="apple" style="width: 18px; vertical-align: bottom;"></i> Food & Tiers</h3>
+            <p style="margin-bottom: 10px;">In Merge Surge and PvP, food comes in 6 tiers. Eating higher tiers directly adds them to your snake. Match 3 adjacent segments to merge them up to the next tier.</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px;">
+              <div><span style="display:inline-block; width:12px; height:12px; background:#00f0ff; margin-right:6px;"></span>Tier 1: Cyan (+10 pts)</div>
+              <div><span style="display:inline-block; width:12px; height:12px; background:#39ff14; margin-right:6px;"></span>Tier 2: Lime (+30 pts)</div>
+              <div><span style="display:inline-block; width:12px; height:12px; background:#ffd700; margin-right:6px;"></span>Tier 3: Gold (+90 pts)</div>
+              <div><span style="display:inline-block; width:12px; height:12px; background:#ff007f; margin-right:6px;"></span>Tier 4: Magenta (+270 pts)</div>
+              <div><span style="display:inline-block; width:12px; height:12px; background:#9d4edd; margin-right:6px;"></span>Tier 5: Purple (+810 pts)</div>
+              <div><span style="display:inline-block; width:12px; height:12px; background:#ffffff; margin-right:6px;"></span>Tier 6: White (+2430 pts)</div>
+            </div>
+
+            <h3 style="color: var(--accent-purple); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="menu" style="width: 18px; vertical-align: bottom;"></i> UI Guide</h3>
+            <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6;">
+              <li><i data-lucide="trophy" style="width: 14px; vertical-align: middle;"></i> <strong>Achievements:</strong> View your unlocked trophies and milestones.</li>
+              <li><i data-lucide="book-open" style="width: 14px; vertical-align: middle;"></i> <strong>Snake Whispering:</strong> This help guide.</li>
+              <li><i data-lucide="palette" style="width: 14px; vertical-align: middle;"></i> <strong>Theme:</strong> Swap between Modern Glass, Retro Gameboy, and Classic Nokia modes.</li>
+              <li><i data-lucide="music" style="width: 14px; vertical-align: middle;"></i> <strong>Music:</strong> Toggle the dynamic procedural synth BGM.</li>
+              <li><i data-lucide="volume-2" style="width: 14px; vertical-align: middle;"></i> <strong>Mute:</strong> Instantly mute all game sounds.</li>
+            </ul>
+            
+            <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Use the settings in the sidebar (or mobile menu) to adjust master volume, change difficulty, and pick your snake skin!</p>
+
+            <button class="btn-primary" id="btn-close-howto" style="width: 100%;">Got it!</button>
+          </div>
+        </div>
+
       </section>
 
       <!-- Sidebar Info & Controls Panel -->
@@ -260,6 +300,17 @@
         <div>
           <span class="panel-section-title"><i data-lucide="palette" style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 6px;"></i> SNAKE SKIN</span>
           <div class="skin-grid" id="skin-grid" style="margin-top: 10px;"></div>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--border-glass);">
+
+        <div>
+          <span class="panel-section-title"><i data-lucide="volume-2" style="width: 16px; height: 16px; vertical-align: text-bottom; margin-right: 6px;"></i> MASTER VOLUME</span>
+          <div style="margin-top: 10px; display: flex; align-items: center; gap: 12px;">
+            <i data-lucide="volume" style="color: var(--text-muted); width: 16px;"></i>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.6" style="flex: 1; cursor: pointer;">
+            <i data-lucide="volume-2" style="color: var(--accent-cyan); width: 16px;"></i>
+          </div>
         </div>
 
         <hr style="border: none; border-top: 1px solid var(--border-glass);">

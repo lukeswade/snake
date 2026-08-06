@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const pauseOverlay = document.getElementById('pause-overlay');
   const rewindOverlay = document.getElementById('rewind-overlay');
   const achievementsModal = document.getElementById('achievements-modal');
+  const howtoModal = document.getElementById('howto-modal');
   const leaderboardModal = document.getElementById('leaderboard-modal');
   const countdownOverlay = document.getElementById('countdown-overlay');
   const countdownNum = document.getElementById('countdown-num');
@@ -36,9 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnMute = document.getElementById('btn-mute');
   const btnBgm = document.getElementById('btn-bgm');
   const btnTheme = document.getElementById('btn-theme');
+  const btnHowto = document.getElementById('btn-howto');
+  const btnCloseHowto = document.getElementById('btn-close-howto');
   const btnShareCard = document.getElementById('btn-share-card');
   const btnShareText = document.getElementById('btn-share-text');
   const btnSurgeTouch = document.getElementById('btn-surge-touch');
+  const volumeSlider = document.getElementById('volume-slider');
 
   const finalScoreVal = document.getElementById('final-score-val');
   const finalHighVal = document.getElementById('final-high-val');
@@ -58,14 +62,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Apply Persisted Audio Settings
   if (storage.getSetting('muted')) {
+    btnMute.innerHTML = '<i data-lucide="volume-x"></i>';
+    btnMute.classList.add('disabled-emoji');
     audio.muted = true;
-    if (btnMute) {
-      btnMute.innerHTML = '<i data-lucide="volume-x"></i>';
-      btnMute.classList.add('disabled-emoji');
-    }
   }
   if (!storage.getSetting('bgm')) {
-    btnBgm?.classList.add('disabled-emoji'); // BGM itself starts on first game (needs a user gesture)
+    btnBgm?.classList.add('disabled-emoji');
+  }
+  if (volumeSlider) {
+    const vol = storage.getSetting('volume') ?? 0.6;
+    volumeSlider.value = vol;
+    audio.setVolume(vol);
   }
 
   const currentDiff = storage.getDifficulty();
@@ -531,6 +538,12 @@ document.addEventListener('DOMContentLoaded', () => {
     btnBgm.classList.toggle('disabled-emoji', !isBgmOn);
   });
 
+  volumeSlider?.addEventListener('input', (e) => {
+    const vol = parseFloat(e.target.value);
+    audio.setVolume(vol);
+    storage.setSetting('volume', vol);
+  });
+
   // Snake Skin Picker
   function renderSkins() {
     const grid = document.getElementById('skin-grid');
@@ -607,7 +620,20 @@ document.addEventListener('DOMContentLoaded', () => {
     audio.playClick();
   });
 
-  document.getElementById('btn-close-leaderboard')?.addEventListener('click', closeLeaderboard);
+  document.getElementById('btn-close-leaderboard')?.addEventListener('click', () => {
+    leaderboardModal.classList.remove('active');
+  });
+
+  // How To / Snake Whispering Modal
+  btnHowto?.addEventListener('click', () => {
+    audio.playClick();
+    howtoModal.classList.add('active');
+  });
+
+  btnCloseHowto?.addEventListener('click', () => {
+    audio.playClick();
+    howtoModal.classList.remove('active');
+  });
 
   leaderboardModal?.addEventListener('click', (e) => {
     if (e.target === leaderboardModal) closeLeaderboard();
