@@ -50,16 +50,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const newHighBadge = document.getElementById('new-high-badge');
 
   const buffBox = document.getElementById('buff-indicators');
+
+  /* Buff pill icons must be ready-made <svg> markup: the HUD loop rewrites
+     buffBox.innerHTML and compares against the previous string each tick, so
+     <i data-lucide> placeholders would never be converted (createIcons isn't
+     re-run there) and re-running it would break the string comparison. */
+  const buffIcon = (name, color) => {
+    const inner = window.lucide?.icons?.[name] || '';
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:text-bottom;">${inner}</svg>`;
+  };
   const BUFF_META = {
-    magnet: { icon: '<i data-lucide="magnet" style="width: 14px; vertical-align: text-bottom; color: var(--accent-cyan);"></i>', label: 'MAGNET' },
-    ghost: { icon: '<i data-lucide="ghost" style="width: 14px; vertical-align: text-bottom; color: #fff;"></i>', label: 'GHOST' },
-    slowmo: { icon: '<i data-lucide="timer" style="width: 14px; vertical-align: text-bottom; color: var(--accent-lime);"></i>', label: 'SLOW-MO' }
+    magnet: { icon: buffIcon('magnet', 'currentColor'), label: 'MAGNET' },
+    ghost: { icon: buffIcon('ghost', '#fff'), label: 'GHOST' },
+    slowmo: { icon: buffIcon('timer', '#39ff14'), label: 'SLOW-MO' }
   };
 
   function closeAllModals() {
-    achievementsModal.classList.remove('active');
-    howtoModal.classList.remove('active');
-    leaderboardModal.classList.remove('active');
+    achievementsModal?.classList.remove('active');
+    howtoModal?.classList.remove('active');
+    leaderboardModal?.classList.remove('active');
+  }
+
+  /* Open a modal over a live game without killing the run: pause first. */
+  function openModal(modal) {
+    if (game.isRunning && !game.isPaused && !countdownActive) togglePause();
+    closeAllModals();
+    modal?.classList.add('active');
   }
 
   // Apply Stored Theme & Difficulty
@@ -122,9 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.className = 'toast';
     toast.innerHTML = `<span>${msg}</span>`;
     container.appendChild(toast);
-    setTimeout(() => {
-      if (toast.parentElement) toast.parentElement.removeChild(toast);
-    }, 4000);
+    // The exit animation lives on .fade-out; remove the node once it finishes
+    setTimeout(() => toast.classList.add('fade-out'), 3600);
+    setTimeout(() => toast.remove(), 4000);
   }
 
   /* 3-2-1-GO countdown. Holds the game paused so neither a fresh start nor a
@@ -236,6 +252,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Escape') closeLeaderboard();
       return;
     }
+    if (howtoModal?.classList.contains('active')) {
+      if (e.key === 'Escape') {
+        howtoModal.classList.remove('active');
+        audio.playClick();
+      }
+      return;
+    }
     // Mid-countdown: any play input skips the rest of the count, then falls
     // through below so a direction key also steers on the same press.
     if (countdownActive) {
@@ -297,11 +320,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Canvas Directional Tapping
+  // Canvas Directional Tapping.
+  // Decided on pointerup, not pointerdown: swipes also start with a
+  // pointerdown, so steering immediately would give every swipe a spurious
+  // first turn. A press that moves less than the threshold is a tap.
   const gameCanvas = document.getElementById('game-canvas');
+  const TAP_SLOP = 12; // px of movement before a press stops counting as a tap
+  let tapStart = null;
+
   gameCanvas?.addEventListener('pointerdown', (e) => {
-    if (!game.isRunning || game.isPaused || game.isGameOver) return;
-    
+    tapStart = { x: e.clientX, y: e.clientY };
+  });
+
+  gameCanvas?.addEventListener('pointerup', (e) => {
+    const start = tapStart;
+    tapStart = null;
+    if (!start) return;
+    if (Math.abs(e.clientX - start.x) > TAP_SLOP || Math.abs(e.clientY - start.y) > TAP_SLOP) return;
+    if (!game.isRunning || game.isPaused || !game.snake) return;
+
     const rect = gameCanvas.getBoundingClientRect();
     const tapX = e.clientX - rect.left;
     const tapY = e.clientY - rect.top;
@@ -312,23 +349,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const headX = (game.snake.segments[0].x + 0.5) * game.cellSize + dx;
     const headY = (game.snake.segments[0].y + 0.5) * game.cellSize + dy;
 
-    const snakeDx = game.snake.direction.x;
-    const snakeDy = game.snake.direction.y;
-
-    if (snakeDx !== 0) {
-      // Moving horizontally, tap above or below
-      if (tapY < headY) {
-        game.snake.setDirection(0, -1);
-      } else {
-        game.snake.setDirection(0, 1);
-      }
-    } else if (snakeDy !== 0) {
-      // Moving vertically, tap left or right
-      if (tapX < headX) {
-        game.snake.setDirection(-1, 0);
-      } else {
-        game.snake.setDirection(1, 0);
-      }
+    if (game.snake.direction.x !== 0) {
+      // Moving horizontally: tap above or below the head to turn
+      game.snake.setDirection(0, tapY < headY ? -1 : 1);
+    } else {
+      // Moving vertically: tap left or right of the head to turn
+      game.snake.setDirection(tapX < headX ? -1 : 1, 0);
     }
   });
 
@@ -458,6 +484,14 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         pvpTimerBox.style.display = 'none';
       }
+
+      // Classic has no surge: show the combo alone and hide the surge chrome
+      const isClassic = game.mode === 'classic';
+      const surgeBar = document.querySelector('.surge-bar-bg');
+      const surgeLabel = document.getElementById('surge-label-text');
+      if (surgeBar) surgeBar.style.display = isClassic ? 'none' : '';
+      if (surgeLabel) surgeLabel.textContent = isClassic ? 'COMBO' : 'SURGE POWER';
+      if (btnSurgeTouch) btnSurgeTouch.style.display = isClassic ? 'none' : '';
 
       // Active buff pills with remaining time (~10 ticks per second)
       if (buffBox) {
@@ -618,24 +652,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.getElementById('btn-leaderboard')?.addEventListener('click', () => {
-    if (game.isRunning && !game.isPaused && !countdownActive) togglePause();
-    closeAllModals();
     lbMode = game.mode;
     renderLeaderboard();
-    leaderboardModal?.classList.add('active');
+    openModal(leaderboardModal);
     sidebarPanel?.classList.remove('open');
     audio.playClick();
   });
 
-  document.getElementById('btn-close-leaderboard')?.addEventListener('click', () => {
-    leaderboardModal.classList.remove('active');
-  });
+  document.getElementById('btn-close-leaderboard')?.addEventListener('click', closeLeaderboard);
 
   // How To / Snake Whispering Modal
   btnHowto?.addEventListener('click', () => {
-    closeAllModals();
     audio.playClick();
-    howtoModal.classList.add('active');
+    openModal(howtoModal);
     // Ensure new icons render if fetched dynamically
     window.lucide?.createIcons();
   });
@@ -643,6 +672,13 @@ document.addEventListener('DOMContentLoaded', () => {
   btnCloseHowto?.addEventListener('click', () => {
     audio.playClick();
     howtoModal.classList.remove('active');
+  });
+
+  howtoModal?.addEventListener('click', (e) => {
+    if (e.target === howtoModal) {
+      audio.playClick();
+      howtoModal.classList.remove('active');
+    }
   });
 
   leaderboardModal?.addEventListener('click', (e) => {
@@ -682,10 +718,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.getElementById('btn-achievements')?.addEventListener('click', () => {
-    closeAllModals();
     audio.playClick();
     renderAchievements();
-    achievementsModal?.classList.add('active');
+    openModal(achievementsModal);
   });
 
   document.getElementById('btn-close-achievements')?.addEventListener('click', closeAchievements);

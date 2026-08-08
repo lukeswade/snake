@@ -267,6 +267,7 @@ class GameEngine {
   }
 
   triggerSurge() {
+    if (this.mode === 'classic') return false;
     if (this.surgeMeter >= 100 && !this.isSurging) {
       this.isSurging = true;
       this.surgeDuration = 100;
@@ -283,6 +284,8 @@ class GameEngine {
   }
 
   gainSurge(amount) {
+    // Classic Survival is pure snake: no surge meter, no rewind safety net.
+    if (this.mode === 'classic') return;
     const wasReady = this.surgeMeter >= 100;
     this.surgeMeter = Math.min(100, this.surgeMeter + amount);
     if (!wasReady && this.surgeMeter >= 100) {

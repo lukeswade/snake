@@ -901,7 +901,9 @@ main {
   left: 0;
   right: 0;
   padding: 0 20px;
-  justify-content: space-between;
+  /* Only the surge button lives here now (steering is tap/swipe on the
+     board), so anchor it to the thumb-friendly bottom-right corner. */
+  justify-content: flex-end;
   align-items: flex-end;
   pointer-events: none;
   z-index: 10;

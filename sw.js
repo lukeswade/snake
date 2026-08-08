@@ -8,7 +8,7 @@
    The lukewade.net zone force-caches .css/.js in the browser for 4 hours, so
    the token — not headers — is what guarantees a returning visitor gets new
    code. Bump both together on every deploy that changes CSS or JS. */
-const ASSET_V = '6';
+const ASSET_V = '7';
 const VERSION = `snake-surge-v4-assets${ASSET_V}`;
 
 const PRECACHE = [
