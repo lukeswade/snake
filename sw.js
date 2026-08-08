@@ -8,7 +8,7 @@
    The lukewade.net zone force-caches .css/.js in the browser for 4 hours, so
    the token — not headers — is what guarantees a returning visitor gets new
    code. Bump both together on every deploy that changes CSS or JS. */
-const ASSET_V = '7';
+const ASSET_V = '8';
 const VERSION = `snake-surge-v4-assets${ASSET_V}`;
 
 const PRECACHE = [
@@ -69,6 +69,9 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+
+  // Live data — never serve the leaderboard from cache
+  if (url.pathname.startsWith('/api/')) return;
 
   // Navigations: network first so a fresh deploy is picked up immediately,
   // falling back to the cached shell when offline.

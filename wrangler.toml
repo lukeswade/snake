@@ -1,0 +1,9 @@
+name = "snake-surge"
+compatibility_date = "2026-08-01"
+pages_build_output_dir = "dist"
+
+# Global leaderboard storage. The binding is applied to the Pages project on
+# deploy; `wrangler pages dev` gets a local simulation of it automatically.
+[[kv_namespaces]]
+binding = "SNAKE_LB"
+id = "596258c69e794ec087965c51c8ad92ab"

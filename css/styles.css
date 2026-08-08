@@ -564,6 +564,10 @@ main {
   border-radius: var(--radius-md);
   image-rendering: pixelated;
   cursor: crosshair;
+  /* Without this, mobile browsers claim the drag for scrolling and fire
+     pointercancel mid-swipe — steering dies the moment the finger moves. */
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Sidebars & Glass Panels */
@@ -1196,6 +1200,46 @@ main {
   color: var(--text-muted);
   font-size: 0.85rem;
   padding: 24px 0;
+}
+
+.lb-name {
+  font-weight: 700;
+  color: var(--text-main);
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lb-row.is-you {
+  border-color: var(--accent-lime);
+  background: rgba(57, 255, 20, 0.07);
+}
+
+/* Global-submit row on the game-over card */
+.global-submit {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.global-submit input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.global-submit input:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
 }
 
 /* Achievements Modal Grid */

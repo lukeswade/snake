@@ -243,6 +243,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Input Handling: Keyboard Controls
   window.addEventListener('keydown', (e) => {
+    // Typing in a text field (e.g. the leaderboard name) is never game input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
     // Open modals capture input
     if (achievementsModal?.classList.contains('active')) {
       if (e.key === 'Escape') closeAchievements();
@@ -320,77 +323,98 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Canvas Directional Tapping.
-  // Decided on pointerup, not pointerdown: swipes also start with a
-  // pointerdown, so steering immediately would give every swipe a spurious
-  // first turn. A press that moves less than the threshold is a tap.
+  /* ==========================================================================
+     UNIFIED TOUCH / POINTER STEERING (tap + swipe on the board)
+
+     One pointer pipeline instead of the old separate tap (pointer events) and
+     swipe (touch events) systems, which double-fired on the same gesture.
+
+     Tap: a press that moves less than TAP_SLOP. Decided on pointerup so a
+     swipe never begins with a spurious turn. The turn axis is judged against
+     the direction the snake is ABOUT to travel (last queued input), not its
+     current heading — otherwise two quick taps inside one movement tick read
+     as the same axis and the second is dropped, which feels like a cooldown
+     between taps.
+
+     Swipe: every SWIPE_STEP px of travel issues a turn and re-anchors, so a
+     single continuous drag can chain corners.
+     ========================================================================== */
   const gameCanvas = document.getElementById('game-canvas');
-  const TAP_SLOP = 12; // px of movement before a press stops counting as a tap
-  let tapStart = null;
+  const TAP_SLOP = 14;
+  const SWIPE_STEP = 24;
+  let ptr = null; // { id, startX, startY, anchorX, anchorY, swiped }
+
+  const steerable = () => game.isRunning && !game.isPaused && game.snake;
+
+  // The direction the head will have once queued inputs run out
+  const pendingDir = () => {
+    const q = game.snake.inputQueue;
+    return q.length ? q[q.length - 1] : game.snake.direction;
+  };
+
+  // Small burst where the player touched, so steering feels acknowledged
+  const tapFeedback = (clientX, clientY) => {
+    const rect = gameCanvas.getBoundingClientRect();
+    game.snake.spawnParticles(clientX - rect.left, clientY - rect.top, '#00f0ff', 4, 2.5);
+  };
 
   gameCanvas?.addEventListener('pointerdown', (e) => {
-    tapStart = { x: e.clientX, y: e.clientY };
+    ptr = { id: e.pointerId, startX: e.clientX, startY: e.clientY, anchorX: e.clientX, anchorY: e.clientY, swiped: false };
+    // Keep receiving moves even if the finger drifts off the board mid-swipe
+    try { gameCanvas.setPointerCapture(e.pointerId); } catch (_) {}
   });
 
-  gameCanvas?.addEventListener('pointerup', (e) => {
-    const start = tapStart;
-    tapStart = null;
-    if (!start) return;
-    if (Math.abs(e.clientX - start.x) > TAP_SLOP || Math.abs(e.clientY - start.y) > TAP_SLOP) return;
-    if (!game.isRunning || game.isPaused || !game.snake) return;
-
-    const rect = gameCanvas.getBoundingClientRect();
-    const tapX = e.clientX - rect.left;
-    const tapY = e.clientY - rect.top;
-
-    const dx = (rect.width - game.cols * game.cellSize) / 2;
-    const dy = (rect.height - game.rows * game.cellSize) / 2;
-
-    const headX = (game.snake.segments[0].x + 0.5) * game.cellSize + dx;
-    const headY = (game.snake.segments[0].y + 0.5) * game.cellSize + dy;
-
-    if (game.snake.direction.x !== 0) {
-      // Moving horizontally: tap above or below the head to turn
-      game.snake.setDirection(0, tapY < headY ? -1 : 1);
-    } else {
-      // Moving vertically: tap left or right of the head to turn
-      game.snake.setDirection(tapX < headX ? -1 : 1, 0);
-    }
-  });
-
-  btnSurgeTouch?.addEventListener('click', () => { game.triggerSurge(); });
-
-  // Swipe Gestures on the Game Viewport (mobile alternative to the joystick)
-  const viewport = document.getElementById('game-viewport');
-  let swipeStart = null;
-  viewport?.addEventListener('touchstart', (e) => {
-    if (e.target.closest('.d-pad') || e.target.closest('.surge-touch-btn') || e.target.closest('.overlay-screen')) return;
-    if (countdownActive) finishCountdown?.(); // tap to skip the count-in
-    swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }, { passive: true });
-
-  // Click to skip the count-in on desktop too
-  viewport?.addEventListener('click', (e) => {
-    if (!countdownActive) return;
-    if (e.target.closest('.overlay-screen') || e.target.closest('button')) return;
-    finishCountdown?.();
-  });
-
-  viewport?.addEventListener('touchmove', (e) => {
-    if (!swipeStart || !game.isRunning || game.isPaused || !game.snake) return;
-    const dx = e.touches[0].clientX - swipeStart.x;
-    const dy = e.touches[0].clientY - swipeStart.y;
-    if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+  gameCanvas?.addEventListener('pointermove', (e) => {
+    if (!ptr || e.pointerId !== ptr.id || !steerable()) return;
+    const dx = e.clientX - ptr.anchorX;
+    const dy = e.clientY - ptr.anchorY;
+    if (Math.abs(dx) < SWIPE_STEP && Math.abs(dy) < SWIPE_STEP) return;
     if (Math.abs(dx) > Math.abs(dy)) {
       game.snake.setDirection(dx > 0 ? 1 : -1, 0);
     } else {
       game.snake.setDirection(0, dy > 0 ? 1 : -1);
     }
-    // Re-anchor so a continuous drag can chain multiple turns
-    swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }, { passive: true });
+    ptr.anchorX = e.clientX;
+    ptr.anchorY = e.clientY;
+    ptr.swiped = true;
+  });
 
-  viewport?.addEventListener('touchend', () => { swipeStart = null; });
+  gameCanvas?.addEventListener('pointerup', (e) => {
+    const p = ptr;
+    ptr = null;
+    if (!p || e.pointerId !== p.id || p.swiped) return;
+    if (Math.abs(e.clientX - p.startX) > TAP_SLOP || Math.abs(e.clientY - p.startY) > TAP_SLOP) return;
+    if (!steerable()) return;
+
+    const rect = gameCanvas.getBoundingClientRect();
+    const tapX = e.clientX - rect.left;
+    const tapY = e.clientY - rect.top;
+    const head = game.snake.segments[0];
+    const headX = (head.x + 0.5) * game.cellSize;
+    const headY = (head.y + 0.5) * game.cellSize;
+
+    const before = game.snake.inputQueue.length;
+    if (pendingDir().x !== 0) {
+      // Will be moving horizontally: tap above or below the head to turn
+      game.snake.setDirection(0, tapY < headY ? -1 : 1);
+    } else {
+      // Will be moving vertically: tap left or right of the head to turn
+      game.snake.setDirection(tapX < headX ? -1 : 1, 0);
+    }
+    if (game.snake.inputQueue.length > before) tapFeedback(e.clientX, e.clientY);
+  });
+
+  gameCanvas?.addEventListener('pointercancel', () => { ptr = null; });
+
+  btnSurgeTouch?.addEventListener('click', () => { game.triggerSurge(); });
+
+  // Tap / click anywhere on the board to skip the count-in
+  const viewport = document.getElementById('game-viewport');
+  viewport?.addEventListener('click', (e) => {
+    if (!countdownActive) return;
+    if (e.target.closest('.overlay-screen') || e.target.closest('button')) return;
+    finishCountdown?.();
+  });
 
   // Auto-Pause when the tab loses focus
   document.addEventListener('visibilitychange', () => {
@@ -510,7 +534,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Also allow tapping anywhere on the game over screen to restart (excluding buttons)
   gameOverOverlay?.addEventListener('click', (e) => {
-    if (e.target.tagName.toLowerCase() === 'button') return;
+    const tag = e.target.tagName.toLowerCase();
+    if (tag === 'button' || tag === 'input') return;
     startGame();
   });
   
@@ -624,26 +649,66 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSkins();
   };
 
-  // Leaderboard Modal
+  // Leaderboard Modal — local runs plus the shared global board
   let lbMode = 'surge';
+  let lbScope = 'global';
+  const globalCache = {}; // mode -> entries, refreshed on each modal open
+
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  async function fetchGlobal(mode, force = false) {
+    if (!force && globalCache[mode]) return globalCache[mode];
+    const res = await fetch(`/api/leaderboard?mode=${mode}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    globalCache[mode] = data.entries || [];
+    return globalCache[mode];
+  }
+
+  function lbRows(entries, withNames) {
+    const you = (storage.getSetting('playerName') || '').toLowerCase();
+    return entries.map((e, i) => `
+      <div class="lb-row top-${i + 1} ${withNames && you && e.name.toLowerCase() === you ? 'is-you' : ''}">
+        <span class="lb-rank">#${i + 1}</span>
+        ${withNames ? `<span class="lb-name">${esc(e.name)}</span>` : ''}
+        <span class="lb-score">${e.score.toLocaleString()}</span>
+        <span class="lb-date">${e.date || ''}</span>
+      </div>`).join('');
+  }
 
   function renderLeaderboard() {
     const list = document.getElementById('lb-list');
     if (!list) return;
-    const entries = storage.getLeaderboard(lbMode);
-    if (!entries.length) {
-      list.innerHTML = `<div class="lb-empty">No runs recorded in this mode yet.</div>`;
-    } else {
-      list.innerHTML = entries.map((e, i) => `
-        <div class="lb-row top-${i + 1}">
-          <span class="lb-rank">#${i + 1}</span>
-          <span class="lb-score">${e.score.toLocaleString()}</span>
-          <span class="lb-date">${e.date || ''}</span>
-        </div>`).join('');
-    }
-    document.querySelectorAll('.lb-tab').forEach(t => {
+
+    document.querySelectorAll('#lb-tabs .lb-tab').forEach(t => {
       t.classList.toggle('active', t.getAttribute('data-lb-mode') === lbMode);
     });
+    document.querySelectorAll('#lb-scope-tabs .lb-tab').forEach(t => {
+      t.classList.toggle('active', t.getAttribute('data-lb-scope') === lbScope);
+    });
+
+    if (lbScope === 'local') {
+      const entries = storage.getLeaderboard(lbMode);
+      list.innerHTML = entries.length
+        ? lbRows(entries, false)
+        : `<div class="lb-empty">No runs recorded in this mode yet.</div>`;
+      return;
+    }
+
+    // Global scope
+    list.innerHTML = `<div class="lb-empty">Loading global scores…</div>`;
+    const requested = `${lbMode}|${lbScope}`;
+    fetchGlobal(lbMode)
+      .then(entries => {
+        if (`${lbMode}|${lbScope}` !== requested) return; // user switched tabs mid-fetch
+        list.innerHTML = entries.length
+          ? lbRows(entries, true)
+          : `<div class="lb-empty">No global scores yet — set the first one!</div>`;
+      })
+      .catch(() => {
+        if (`${lbMode}|${lbScope}` !== requested) return;
+        list.innerHTML = `<div class="lb-empty">Couldn't reach the global board. Check your connection.</div>`;
+      });
   }
 
   function closeLeaderboard() {
@@ -653,6 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-leaderboard')?.addEventListener('click', () => {
     lbMode = game.mode;
+    Object.keys(globalCache).forEach(k => delete globalCache[k]); // fresh scores per open
     renderLeaderboard();
     openModal(leaderboardModal);
     sidebarPanel?.classList.remove('open');
@@ -685,9 +751,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === leaderboardModal) closeLeaderboard();
   });
 
-  document.querySelectorAll('.lb-tab').forEach(tab => {
+  document.querySelectorAll('#lb-tabs .lb-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       lbMode = tab.getAttribute('data-lb-mode');
+      renderLeaderboard();
+      audio.playClick();
+    });
+  });
+
+  document.querySelectorAll('#lb-scope-tabs .lb-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      lbScope = tab.getAttribute('data-lb-scope');
       renderLeaderboard();
       audio.playClick();
     });
@@ -787,8 +861,97 @@ document.addEventListener('DOMContentLoaded', () => {
 
     refreshScores();
     renderSkins(); // A run may have just unlocked a skin
+    prepareGlobalSubmit(res);
     gameOverOverlay.classList.add('active');
   };
+
+  /* ------- Global leaderboard submission on the game-over card -------
+     First qualifying run asks for a name once; after that every run
+     auto-submits under the saved name and just shows the resulting rank. */
+  const submitBox = document.getElementById('global-submit-box');
+  const nameInput = document.getElementById('player-name-input');
+  const btnSubmitGlobal = document.getElementById('btn-submit-global');
+  const globalRankBadge = document.getElementById('global-rank-badge');
+  let lastRun = null;
+
+  async function submitGlobal(run, name) {
+    const res = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: run.mode, score: run.score, name })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  function showGlobalRank(result) {
+    if (!globalRankBadge) return;
+    globalRankBadge.textContent = result.improved
+      ? (result.rank && result.rank <= 25 ? `🌍 GLOBAL #${result.rank}` : '🌍 On the global board!')
+      : '🌍 Your global best still stands';
+    globalRankBadge.style.display = 'inline-block';
+    delete globalCache[lastRun?.mode]; // stale now
+  }
+
+  function prepareGlobalSubmit(res) {
+    lastRun = { mode: res.mode, score: res.score };
+    if (globalRankBadge) globalRankBadge.style.display = 'none';
+    if (!submitBox) return;
+
+    if (res.score <= 0 || !navigator.onLine) {
+      submitBox.style.display = 'none';
+      return;
+    }
+
+    const savedName = storage.getSetting('playerName');
+    if (savedName) {
+      submitBox.style.display = 'none';
+      // Returning player: submit quietly, but only when this run beats what
+      // we've already sent — every death posting to the API would chew
+      // through the per-IP rate limit for nothing.
+      const best = storage.getSetting('bestSubmitted') || {};
+      if (res.score > (best[res.mode] || 0)) {
+        submitGlobal(lastRun, savedName).then(result => {
+          best[res.mode] = res.score;
+          storage.setSetting('bestSubmitted', best);
+          showGlobalRank(result);
+        }).catch(() => {});
+      }
+    } else {
+      submitBox.style.display = 'flex';
+      if (nameInput) nameInput.value = '';
+    }
+  }
+
+  async function handleGlobalSubmit() {
+    const name = (nameInput?.value || '').trim().replace(/[^A-Za-z0-9 _\-.]/g, '').slice(0, 16);
+    if (!name) {
+      showToast('⚠️ Enter a name first');
+      nameInput?.focus();
+      return;
+    }
+    if (!lastRun) return;
+    btnSubmitGlobal.disabled = true;
+    try {
+      const result = await submitGlobal(lastRun, name);
+      storage.setSetting('playerName', name);
+      const best = storage.getSetting('bestSubmitted') || {};
+      best[lastRun.mode] = Math.max(best[lastRun.mode] || 0, lastRun.score);
+      storage.setSetting('bestSubmitted', best);
+      submitBox.style.display = 'none';
+      showGlobalRank(result);
+      audio.playAchievement();
+    } catch {
+      showToast('⚠️ Could not reach the global board');
+    } finally {
+      btnSubmitGlobal.disabled = false;
+    }
+  }
+
+  btnSubmitGlobal?.addEventListener('click', handleGlobalSubmit);
+  nameInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleGlobalSubmit();
+  });
 
   // Share Card Download & Copy
   btnShareCard?.addEventListener('click', () => {

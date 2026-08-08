@@ -33,8 +33,8 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="css/styles.css?v=7">
-  <script src="js/icons.js?v=7"></script>
+  <link rel="stylesheet" href="css/styles.css?v=8">
+  <script src="js/icons.js?v=8"></script>
 </head>
 <body>
 
@@ -157,6 +157,13 @@
 
             <span id="rank-badge" class="badge" style="background: var(--accent-purple); color: #fff; display: none; padding: 6px 14px; font-weight: 800;"></span>
 
+            <!-- Global leaderboard submission -->
+            <div id="global-submit-box" class="global-submit" style="display: none;">
+              <input type="text" id="player-name-input" maxlength="16" placeholder="Your name" autocomplete="nickname" spellcheck="false">
+              <button class="btn-secondary" id="btn-submit-global" style="width: auto; white-space: nowrap;"><i data-lucide="globe" style="width: 15px; height: 15px;"></i> Go Global</button>
+            </div>
+            <span id="global-rank-badge" class="badge" style="background: var(--accent-cyan); color: #000; display: none; padding: 6px 14px; font-weight: 800;"></span>
+
             <div style="display: flex; gap: 10px; width: 100%;">
               <button class="btn-secondary" id="btn-share-card"><i data-lucide="camera" style="width: 16px; height: 16px;"></i> Download Stat Card</button>
               <button class="btn-secondary" id="btn-share-text"><i data-lucide="clipboard-copy" style="width: 16px; height: 16px;"></i> Copy Share Link</button>
@@ -193,6 +200,10 @@
         <div class="overlay-screen" id="leaderboard-modal">
           <div class="overlay-card">
             <h2 class="overlay-title" style="font-size: 1.6rem;">LEADERBOARD</h2>
+            <div class="lb-tabs lb-scope-tabs" id="lb-scope-tabs">
+              <button class="lb-tab active" data-lb-scope="global"><i data-lucide="globe" style="width: 14px; height: 14px; vertical-align: text-bottom;"></i> Global</button>
+              <button class="lb-tab" data-lb-scope="local"><i data-lucide="user" style="width: 14px; height: 14px; vertical-align: text-bottom;"></i> My Runs</button>
+            </div>
             <div class="lb-tabs" id="lb-tabs">
               <button class="lb-tab active" data-lb-mode="surge">Surge</button>
               <button class="lb-tab" data-lb-mode="classic">Classic</button>
@@ -375,13 +386,13 @@
     <button id="btn-update-reload" class="btn-primary" style="padding: 6px 12px; font-size: 0.9rem;">Refresh</button>
   </div>
 
-  <script src="js/audio.js?v=7"></script>
-  <script src="js/storage.js?v=7"></script>
-  <script src="js/snake.js?v=7"></script>
-  <script src="js/aiSnake.js?v=7"></script>
-  <script src="js/game.js?v=7"></script>
-  <script src="js/cardGenerator.js?v=7"></script>
-  <script src="js/ui.js?v=7"></script>
+  <script src="js/audio.js?v=8"></script>
+  <script src="js/storage.js?v=8"></script>
+  <script src="js/snake.js?v=8"></script>
+  <script src="js/aiSnake.js?v=8"></script>
+  <script src="js/game.js?v=8"></script>
+  <script src="js/cardGenerator.js?v=8"></script>
+  <script src="js/ui.js?v=8"></script>
 
   <!-- Offline support. Registered after load so it never competes with the
        game's own assets for bandwidth on a first visit. -->
