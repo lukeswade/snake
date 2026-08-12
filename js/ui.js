@@ -97,6 +97,27 @@ document.addEventListener('DOMContentLoaded', () => {
     audio.setVolume(vol);
   }
 
+  // Device-aware controls hint — keyboard instructions are noise on a phone
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  if (isTouchDevice) {
+    const hint = document.getElementById('controls-hint');
+    if (hint) hint.textContent = 'Tap either side of your snake to turn, or swipe | Tap ⚡ to Surge';
+  }
+
+  // World-record teaser on the start screen — a target to chase before the
+  // first key is pressed. Fails silently offline.
+  fetch('/api/leaderboard?mode=surge')
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      const top = data?.entries?.[0];
+      const line = document.getElementById('world-record-line');
+      if (top && line) {
+        line.textContent = `🌍 World record: ${top.score.toLocaleString()} — ${top.name}`;
+        line.style.display = 'block';
+      }
+    })
+    .catch(() => {});
+
   const currentDiff = storage.getDifficulty();
   document.querySelectorAll('.difficulty-btn').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-diff') === currentDiff);
@@ -416,7 +437,13 @@ document.addEventListener('DOMContentLoaded', () => {
     finishCountdown?.();
   });
 
-  // Auto-Pause when the tab loses focus
+  // Auto-Pause when the window loses focus. visibilitychange alone misses
+  // the common desktop case of clicking another window while the tab stays
+  // visible — the snake keeps sliding into a wall behind the other app.
+  window.addEventListener('blur', () => {
+    if (game.isRunning && !game.isPaused && !countdownActive) togglePause();
+  });
+
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden || !game.isRunning) return;
     if (countdownActive) {
@@ -495,6 +522,16 @@ document.addEventListener('DOMContentLoaded', () => {
       scoreVal.textContent = game.score.toLocaleString();
       comboVal.textContent = `${game.combo}x`;
       surgeFill.style.width = `${game.surgeMeter}%`;
+
+      // "Best" tracks you live once you pass it — beating your record
+      // mid-run should feel like it, not wait for the death screen
+      const best = storage.getHighScore(game.mode);
+      if (game.score > best) {
+        highVal.textContent = game.score.toLocaleString();
+        scoreVal.style.color = 'var(--accent-gold)';
+      } else {
+        scoreVal.style.color = '';
+      }
 
       if (game.surgeMeter >= 100) {
         surgeFill.classList.add('surge-ready');

@@ -88,7 +88,9 @@ class StatCardGenerator {
     // Footer Watermark
     ctx.fillStyle = '#64748b';
     ctx.font = '600 13px Outfit, sans-serif';
-    ctx.fillText('Can you beat my score? Play Snake Surge now!', 36, 320);
+    ctx.fillText('Can you beat my score?', 36, 320);
+    ctx.fillStyle = '#00f0ff';
+    ctx.fillText('snake.lukewade.net', 210, 320);
 
     return canvas.toDataURL('image/png');
   }
@@ -102,7 +104,9 @@ class StatCardGenerator {
   }
 
   static copyShareText(stats) {
-    const text = `🐍 I just scored ${stats.score.toLocaleString()} points in Snake Surge (${stats.mode} Mode) with ${stats.merges || 0} merges! Beat my score! 🚀`;
+    // The link is the whole point of sharing — without it the recipient has
+    // nowhere to go beat the score.
+    const text = `🐍 I just scored ${stats.score.toLocaleString()} points in Snake Surge (${stats.mode} Mode) with ${stats.merges || 0} merges! Beat my score → https://snake.lukewade.net 🚀`;
     if (navigator.clipboard) {
       return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
     }

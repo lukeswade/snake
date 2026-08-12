@@ -1,4 +1,12 @@
 {
+  "name": "snake-surge",
+  "private": true,
+  "description": "Merge, surge, rewind death — a canvas snake PWA with a global leaderboard.",
+  "scripts": {
+    "build": "./build-dist.sh",
+    "dev": "./build-dist.sh && wrangler pages dev",
+    "deploy": "./build-dist.sh && wrangler pages deploy"
+  },
   "dependencies": {
     "puppeteer": "^25.4.0"
   }

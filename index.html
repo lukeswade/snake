@@ -33,10 +33,16 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="css/styles.css?v=8">
-  <script src="js/icons.js?v=8"></script>
+  <link rel="stylesheet" href="css/styles.css?v=9">
+  <script src="js/icons.js?v=9"></script>
 </head>
 <body>
+
+  <noscript>
+    <p style="text-align: center; padding: 40px 20px; font-family: sans-serif;">
+      Snake Surge needs JavaScript to run — it's a canvas game. Please enable it and reload.
+    </p>
+  </noscript>
 
   <!-- Ambient Animated Background -->
   <div class="bg-ambient">
@@ -59,13 +65,13 @@
       </div>
 
       <div class="nav-actions">
-        <button id="btn-achievements" class="btn-icon" title="Achievements"><i data-lucide="trophy"></i></button>
-        <button id="btn-howto" class="btn-icon" title="Snake Whispering (How to Play)"><i data-lucide="book-open"></i></button>
-        <button id="btn-theme" class="btn-icon" title="Switch Theme"><i data-lucide="palette"></i></button>
-        <button id="btn-bgm" class="btn-icon" title="Toggle Synth BGM"><i data-lucide="music"></i></button>
-        <button id="btn-mute" class="btn-icon" title="Toggle Mute Sound"><i data-lucide="volume-2"></i></button>
-        <button id="btn-pause" class="btn-icon disabled" title="Pause Game"><i data-lucide="pause"></i></button>
-        <button id="btn-menu" class="btn-icon mobile-menu-toggle" title="Menu"><i data-lucide="menu"></i></button>
+        <button id="btn-achievements" class="btn-icon" aria-label="Achievements" title="Achievements"><i data-lucide="trophy"></i></button>
+        <button id="btn-howto" class="btn-icon" aria-label="Snake Whispering (How to Play)" title="Snake Whispering (How to Play)"><i data-lucide="book-open"></i></button>
+        <button id="btn-theme" class="btn-icon" aria-label="Switch Theme" title="Switch Theme"><i data-lucide="palette"></i></button>
+        <button id="btn-bgm" class="btn-icon" aria-label="Toggle Synth BGM" title="Toggle Synth BGM"><i data-lucide="music"></i></button>
+        <button id="btn-mute" class="btn-icon" aria-label="Toggle Mute Sound" title="Toggle Mute Sound"><i data-lucide="volume-2"></i></button>
+        <button id="btn-pause" class="btn-icon disabled" aria-label="Pause Game" title="Pause Game"><i data-lucide="pause"></i></button>
+        <button id="btn-menu" class="btn-icon mobile-menu-toggle" aria-label="Menu" title="Menu"><i data-lucide="menu"></i></button>
       </div>
     </header>
 
@@ -115,7 +121,7 @@
 
         <!-- Mobile Touch Controls -->
         <div class="mobile-controls">
-          <button class="surge-touch-btn" id="btn-surge-touch" title="SURGE!"><i data-lucide="zap" style="width: 24px; height: 24px;"></i></button>
+          <button class="surge-touch-btn" id="btn-surge-touch" aria-label="Activate Surge" title="SURGE!"><i data-lucide="zap" style="width: 24px; height: 24px;"></i></button>
         </div>
 
         <!-- Start Overlay Screen -->
@@ -129,7 +135,8 @@
             <button class="btn-primary" id="btn-start">
               <span>PLAY NOW</span> <i data-lucide="arrow-right"></i>
             </button>
-            <p style="font-size: 0.75rem; color: var(--text-muted);">Controls: WASD / Arrow Keys | Spacebar to Surge</p>
+            <p id="controls-hint" style="font-size: 0.75rem; color: var(--text-muted);">Controls: WASD / Arrow Keys | Spacebar to Surge</p>
+            <p id="world-record-line" style="display: none; font-size: 0.85rem; color: var(--accent-gold); font-family: var(--font-mono); font-weight: 700;"></p>
           </div>
         </div>
 
@@ -386,13 +393,13 @@
     <button id="btn-update-reload" class="btn-primary" style="padding: 6px 12px; font-size: 0.9rem;">Refresh</button>
   </div>
 
-  <script src="js/audio.js?v=8"></script>
-  <script src="js/storage.js?v=8"></script>
-  <script src="js/snake.js?v=8"></script>
-  <script src="js/aiSnake.js?v=8"></script>
-  <script src="js/game.js?v=8"></script>
-  <script src="js/cardGenerator.js?v=8"></script>
-  <script src="js/ui.js?v=8"></script>
+  <script src="js/audio.js?v=9"></script>
+  <script src="js/storage.js?v=9"></script>
+  <script src="js/snake.js?v=9"></script>
+  <script src="js/aiSnake.js?v=9"></script>
+  <script src="js/game.js?v=9"></script>
+  <script src="js/cardGenerator.js?v=9"></script>
+  <script src="js/ui.js?v=9"></script>
 
   <!-- Offline support. Registered after load so it never competes with the
        game's own assets for bandwidth on a first visit. -->

@@ -276,6 +276,7 @@ class GameEngine {
       this.hitStop(5); // Major impact!
       audio.playSurge();
       audio.setSurgeFilter(true);
+      navigator.vibrate?.([20, 30, 60]);
       storage.updateStats({ surgesActivated: 1 });
       this.addFloatingText("SURGE!", (this.snake.getHead().x + 0.5) * this.cellSize, this.snake.getHead().y * this.cellSize, '#ff007f');
       this.triggerShake(5, 5);
@@ -750,6 +751,17 @@ class GameEngine {
     if (this.pvpTimer) clearInterval(this.pvpTimer);
     audio.setSurgeFilter(false);
 
+    // Death deserves more than a sound; wins deserve a fanfare
+    if (isWin) {
+      audio.playAchievement();
+      navigator.vibrate?.([30, 40, 30, 40, 80]);
+    } else if (this.snake) {
+      const head = this.snake.getHead();
+      this.snake.spawnParticles((head.x + 0.5) * this.cellSize, (head.y + 0.5) * this.cellSize, '#ff2040', 22, 5);
+      this.triggerShake(12, 8);
+      navigator.vibrate?.(120);
+    }
+
     const isNewHigh = storage.setHighScore(this.mode, this.score);
     storage.updateStats({
       gamesPlayed: 1,
@@ -757,7 +769,7 @@ class GameEngine {
     });
 
     if (this.onGameOver) {
-      this.onGameOver({
+      const payload = {
         score: this.score,
         mode: this.mode,
         merges: this.mergesCount,
@@ -765,7 +777,32 @@ class GameEngine {
         foodEaten: storage.data.stats.foodEaten,
         isNewHighScore: isNewHigh,
         isWin: isWin
-      });
+      };
+
+      if (!isWin && this.snake) {
+        // The main loop stops with isRunning=false, so run a short rAF tail
+        // to let the crash burst and shake play before the overlay drops.
+        // The setTimeout is the guarantee: rAF doesn't fire in hidden tabs,
+        // and the game-over screen must never be hostage to that.
+        let fired = false;
+        const finish = () => {
+          if (fired || this.isRunning) return; // restarted mid-beat: stale
+          fired = true;
+          this.onGameOver(payload);
+        };
+        let frames = 22;
+        const beat = () => {
+          if (fired || this.isRunning) return;
+          this.snake.updateParticles();
+          this.render(1.0);
+          if (--frames > 0) requestAnimationFrame(beat);
+          else finish();
+        };
+        requestAnimationFrame(beat);
+        setTimeout(finish, 500);
+      } else {
+        this.onGameOver(payload);
+      }
     }
   }
 
@@ -775,6 +812,7 @@ class GameEngine {
     this.isRewinding = true;
     this.isPaused = true;
     this.surgeMeter -= 50;
+    navigator.vibrate?.([15, 25, 15, 25, 15]);
     storage.updateStats({ surgesActivated: 1 });
     audio.setMood('mario');
     this.hitStop(10); // Massive hit stop on rewind trigger
