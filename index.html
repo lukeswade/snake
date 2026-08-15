@@ -2,7 +2,10 @@
 <html lang="en" data-theme="cyber">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- viewport-fit=cover is what makes env(safe-area-inset-*) resolve to real
+       values; without it the installed PWA can't compensate for the Dynamic
+       Island or the home indicator. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Snake Surge — Merge, Surge, Rewind Death</title>
   <meta name="description" content="A snake that fuses its own body. Merge three matching segments to upgrade them, bank the surge meter, and when you finally crash — spend it to rewind time and undo your death.">
   <link rel="canonical" href="https://snake.lukewade.net/">
@@ -33,8 +36,8 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="css/styles.css?v=9">
-  <script src="js/icons.js?v=9"></script>
+  <link rel="stylesheet" href="css/styles.css?v=10">
+  <script src="js/icons.js?v=10"></script>
 </head>
 <body>
 
@@ -203,92 +206,6 @@
           </div>
         </div>
 
-        <!-- Leaderboard Modal -->
-        <div class="overlay-screen" id="leaderboard-modal">
-          <div class="overlay-card">
-            <h2 class="overlay-title" style="font-size: 1.6rem;">LEADERBOARD</h2>
-            <div class="lb-tabs lb-scope-tabs" id="lb-scope-tabs">
-              <button class="lb-tab active" data-lb-scope="global"><i data-lucide="globe" style="width: 14px; height: 14px; vertical-align: text-bottom;"></i> Global</button>
-              <button class="lb-tab" data-lb-scope="local"><i data-lucide="user" style="width: 14px; height: 14px; vertical-align: text-bottom;"></i> My Runs</button>
-            </div>
-            <div class="lb-tabs" id="lb-tabs">
-              <button class="lb-tab active" data-lb-mode="surge">Surge</button>
-              <button class="lb-tab" data-lb-mode="classic">Classic</button>
-              <button class="lb-tab" data-lb-mode="pvp">PvP</button>
-            </div>
-            <div class="lb-list" id="lb-list"></div>
-            <button class="btn-secondary" id="btn-close-leaderboard">Close</button>
-          </div>
-        </div>
-
-        <!-- Achievements Modal -->
-        <div class="overlay-screen" id="achievements-modal">
-          <div class="overlay-card">
-            <h2 class="overlay-title" style="font-size: 1.6rem;">ACHIEVEMENTS</h2>
-            <span class="badge" id="ach-count" style="background: var(--accent-purple); color: #fff; padding: 4px 12px;">0/0</span>
-            <div class="ach-grid" id="achievements-grid"></div>
-            <button class="btn-secondary" id="btn-close-achievements">Close</button>
-          </div>
-        </div>
-
-        <!-- Snake Whispering (How-To) Modal -->
-        <div class="overlay-screen" id="howto-modal">
-          <div class="overlay-card" style="max-height: 80vh; overflow-y: auto; text-align: left;">
-            <h2 class="overlay-title" style="font-size: 1.8rem; text-align: center;">SNAKE WHISPERING</h2>
-            <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">The Ultimate Guide to Snake Surge</p>
-
-            <h3 style="color: var(--accent-cyan); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="gamepad-2" style="width: 18px; vertical-align: bottom;"></i> Game Modes</h3>
-            <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6;">
-              <li><strong style="color: var(--accent-cyan);">Merge & Surge:</strong> The core modern experience. Eating fills your Surge meter; line up 3 same-tier segments and they fuse into one higher tier for bonus points. At 100% press SPACE (or tap SURGE on mobile) for a Hyper-Surge: brief invincibility, wall-phasing and slow-mo.</li>
-              <li><strong style="color: var(--accent-lime);">Classic Survival:</strong> Retro rules. One food type. If you hit the wall, an obstacle or yourself, you die. No surges, no merging, no rewinds. Pure high score chasing.</li>
-              <li><strong style="color: var(--accent-magenta);">PvP Blitz:</strong> 60 seconds on the clock against two AI snakes. Force them to crash into you to knock them out — eliminate both for an instant win, or hold the highest score when time expires.</li>
-            </ul>
-
-            <h3 style="color: var(--accent-cyan); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="rewind" style="width: 18px; vertical-align: bottom;"></i> Cheating Death (Chrono-Surge)</h3>
-            <p style="margin-bottom: 20px; line-height: 1.6;">Crash in Merge & Surge with at least <strong style="color: var(--accent-cyan);">50% Surge</strong> banked and time freezes: spend it to <strong>rewind the last few seconds</strong> and keep the run alive, or accept your fate. One press of <strong>[R]</strong> undoes your death.</p>
-
-            <h3 style="color: var(--accent-gold); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="apple" style="width: 18px; vertical-align: bottom;"></i> Food Mechanics & Tiers</h3>
-            <p style="margin-bottom: 10px;">In Merge & Surge, eating food adds a segment of that tier to your tail. Points are <strong style="color: var(--accent-gold);">10 × tier × your combo</strong> — every quick bite raises the combo (up to 8x), and at max combo <strong style="color: var(--accent-magenta);">Fever Mode</strong> doubles everything.</p>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; font-size: 0.9rem;">
-              <div><span style="display:inline-block; width:12px; height:12px; background:#ff007f; margin-right:6px;"></span>Tier 1 food (+10 × combo)</div>
-              <div><span style="display:inline-block; width:12px; height:12px; background:#39ff14; margin-right:6px;"></span>Tier 2 food (+20 × combo)</div>
-              <div><span style="display:inline-block; width:12px; height:12px; background:#ffd700; margin-right:6px;"></span>Gold / Runner (+30 × combo)</div>
-              <div><span style="display:inline-block; width:12px; height:12px; background:#9d4edd; margin-right:6px;"></span>Runner catch bonus (+500)</div>
-            </div>
-
-            <p style="margin-bottom: 15px; font-size: 0.9rem;">Line up <strong>3 same-tier segments</strong> and they fuse into one segment of the next tier — worth <strong style="color: var(--accent-gold);">50 × the new tier</strong> and it shortens your snake. Body tiers climb Cyan → Lime → Gold → Magenta → Purple → White.</p>
-
-            <p style="margin-bottom: 5px; font-weight: bold; color: var(--accent-lime);">Special Food Types (Merge & Surge):</p>
-            <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6; font-size: 0.9rem;">
-              <li><i data-lucide="star" style="width: 16px; vertical-align: text-bottom; color: var(--accent-purple);"></i> <strong>Runner (Tier 3):</strong> A glowing purple orb that actively flees when you get close! Corner it for a Tier 3 segment, +500 bonus points and a 25% Surge boost.</li>
-              <li><i data-lucide="magnet" style="width: 16px; vertical-align: text-bottom; color: var(--accent-cyan);"></i> <strong>Magnet Power-up:</strong> Temporarily pulls nearby food directly towards your snake's head.</li>
-              <li><i data-lucide="ghost" style="width: 16px; vertical-align: text-bottom; color: #fff;"></i> <strong>Ghost Power-up:</strong> Grants temporary phase-shifting. You can safely pass through walls and your own tail without dying!</li>
-              <li><i data-lucide="timer" style="width: 16px; vertical-align: text-bottom; color: var(--accent-lime);"></i> <strong>Slow-Mo Power-up:</strong> Drastically reduces game speed for precision maneuvering in tight spaces.</li>
-            </ul>
-
-            <h3 style="color: var(--accent-purple); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="menu" style="width: 18px; vertical-align: bottom;"></i> UI Guide</h3>
-            <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6;">
-              <li><i data-lucide="trophy" style="width: 14px; vertical-align: middle;"></i> <strong>Achievements:</strong> View your unlocked trophies and milestones.</li>
-              <li><i data-lucide="book-open" style="width: 14px; vertical-align: middle;"></i> <strong>Snake Whispering:</strong> This help guide.</li>
-              <li><i data-lucide="palette" style="width: 14px; vertical-align: middle;"></i> <strong>Theme:</strong> Swap between Modern Glass, Retro Gameboy, and Classic Nokia modes.</li>
-              <li><i data-lucide="music" style="width: 14px; vertical-align: middle;"></i> <strong>Music:</strong> Toggle the dynamic procedural synth BGM.</li>
-              <li><i data-lucide="volume-2" style="width: 14px; vertical-align: middle;"></i> <strong>Mute:</strong> Instantly mute all game sounds.</li>
-            </ul>
-            
-            <h3 style="color: var(--accent-lime); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="gauge" style="width: 18px; vertical-align: bottom;"></i> Controls</h3>
-            <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6; font-size: 0.9rem;">
-              <li><strong>Steer:</strong> WASD / Arrow Keys — or on touch screens, tap either side of your snake's path, or swipe anywhere on the board.</li>
-              <li><strong>Surge:</strong> SPACE, or the <i data-lucide="zap" style="width: 14px; vertical-align: middle; color: var(--accent-magenta);"></i> button on mobile (when the meter is full).</li>
-              <li><strong>Pause:</strong> P or ESC. <strong>Rewind:</strong> R at the crash prompt. Any key skips the countdown.</li>
-            </ul>
-
-            <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Use the settings in the sidebar (or mobile menu) to adjust master volume, change difficulty, and pick your snake skin!</p>
-
-            <button class="btn-primary" id="btn-close-howto" style="width: 100%;">Got it!</button>
-          </div>
-        </div>
-
       </section>
 
       <!-- Sidebar Info & Controls Panel -->
@@ -383,6 +300,96 @@
 
   </div>
 
+  <!-- App-level menu modals. These live outside #app-container because
+       .game-viewport uses backdrop-filter, which makes it a containing
+       block for position:fixed descendants — nested inside it they were
+       clipped to the board instead of covering the screen. -->
+  <!-- Leaderboard Modal -->
+  <div class="overlay-screen" id="leaderboard-modal">
+    <div class="overlay-card">
+      <h2 class="overlay-title" style="font-size: 1.6rem;">LEADERBOARD</h2>
+      <div class="lb-tabs lb-scope-tabs" id="lb-scope-tabs">
+        <button class="lb-tab active" data-lb-scope="global"><i data-lucide="globe" style="width: 14px; height: 14px; vertical-align: text-bottom;"></i> Global</button>
+        <button class="lb-tab" data-lb-scope="local"><i data-lucide="user" style="width: 14px; height: 14px; vertical-align: text-bottom;"></i> My Runs</button>
+      </div>
+      <div class="lb-tabs" id="lb-tabs">
+        <button class="lb-tab active" data-lb-mode="surge">Surge</button>
+        <button class="lb-tab" data-lb-mode="classic">Classic</button>
+        <button class="lb-tab" data-lb-mode="pvp">PvP</button>
+      </div>
+      <div class="lb-list" id="lb-list"></div>
+      <button class="btn-secondary" id="btn-close-leaderboard">Close</button>
+    </div>
+  </div>
+
+  <!-- Achievements Modal -->
+  <div class="overlay-screen" id="achievements-modal">
+    <div class="overlay-card">
+      <h2 class="overlay-title" style="font-size: 1.6rem;">ACHIEVEMENTS</h2>
+      <span class="badge" id="ach-count" style="background: var(--accent-purple); color: #fff; padding: 4px 12px;">0/0</span>
+      <div class="ach-grid" id="achievements-grid"></div>
+      <button class="btn-secondary" id="btn-close-achievements">Close</button>
+    </div>
+  </div>
+
+  <!-- Snake Whispering (How-To) Modal -->
+  <div class="overlay-screen" id="howto-modal">
+    <div class="overlay-card" style="max-height: 80vh; overflow-y: auto; text-align: left;">
+      <h2 class="overlay-title" style="font-size: 1.8rem; text-align: center;">SNAKE WHISPERING</h2>
+      <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">The Ultimate Guide to Snake Surge</p>
+
+      <h3 style="color: var(--accent-cyan); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="gamepad-2" style="width: 18px; vertical-align: bottom;"></i> Game Modes</h3>
+      <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6;">
+        <li><strong style="color: var(--accent-cyan);">Merge & Surge:</strong> The core modern experience. Eating fills your Surge meter; line up 3 same-tier segments and they fuse into one higher tier for bonus points. At 100% press SPACE (or tap SURGE on mobile) for a Hyper-Surge: brief invincibility, wall-phasing and slow-mo.</li>
+        <li><strong style="color: var(--accent-lime);">Classic Survival:</strong> Retro rules. One food type. If you hit the wall, an obstacle or yourself, you die. No surges, no merging, no rewinds. Pure high score chasing.</li>
+        <li><strong style="color: var(--accent-magenta);">PvP Blitz:</strong> 60 seconds on the clock against two AI snakes. Force them to crash into you to knock them out — eliminate both for an instant win, or hold the highest score when time expires.</li>
+      </ul>
+
+      <h3 style="color: var(--accent-cyan); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="rewind" style="width: 18px; vertical-align: bottom;"></i> Cheating Death (Chrono-Surge)</h3>
+      <p style="margin-bottom: 20px; line-height: 1.6;">Crash in Merge & Surge with at least <strong style="color: var(--accent-cyan);">50% Surge</strong> banked and time freezes: spend it to <strong>rewind the last few seconds</strong> and keep the run alive, or accept your fate. One press of <strong>[R]</strong> undoes your death.</p>
+
+      <h3 style="color: var(--accent-gold); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="apple" style="width: 18px; vertical-align: bottom;"></i> Food Mechanics & Tiers</h3>
+      <p style="margin-bottom: 10px;">In Merge & Surge, eating food adds a segment of that tier to your tail. Points are <strong style="color: var(--accent-gold);">10 × tier × your combo</strong> — every quick bite raises the combo (up to 8x), and at max combo <strong style="color: var(--accent-magenta);">Fever Mode</strong> doubles everything.</p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; font-size: 0.9rem;">
+        <div><span style="display:inline-block; width:12px; height:12px; background:#ff007f; margin-right:6px;"></span>Tier 1 food (+10 × combo)</div>
+        <div><span style="display:inline-block; width:12px; height:12px; background:#39ff14; margin-right:6px;"></span>Tier 2 food (+20 × combo)</div>
+        <div><span style="display:inline-block; width:12px; height:12px; background:#ffd700; margin-right:6px;"></span>Gold / Runner (+30 × combo)</div>
+        <div><span style="display:inline-block; width:12px; height:12px; background:#9d4edd; margin-right:6px;"></span>Runner catch bonus (+500)</div>
+      </div>
+
+      <p style="margin-bottom: 15px; font-size: 0.9rem;">Line up <strong>3 same-tier segments</strong> and they fuse into one segment of the next tier — worth <strong style="color: var(--accent-gold);">50 × the new tier</strong> and it shortens your snake. Body tiers climb Cyan → Lime → Gold → Magenta → Purple → White.</p>
+
+      <p style="margin-bottom: 5px; font-weight: bold; color: var(--accent-lime);">Special Food Types (Merge & Surge):</p>
+      <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6; font-size: 0.9rem;">
+        <li><i data-lucide="star" style="width: 16px; vertical-align: text-bottom; color: var(--accent-purple);"></i> <strong>Runner (Tier 3):</strong> A glowing purple orb that actively flees when you get close! Corner it for a Tier 3 segment, +500 bonus points and a 25% Surge boost.</li>
+        <li><i data-lucide="magnet" style="width: 16px; vertical-align: text-bottom; color: var(--accent-cyan);"></i> <strong>Magnet Power-up:</strong> Temporarily pulls nearby food directly towards your snake's head.</li>
+        <li><i data-lucide="ghost" style="width: 16px; vertical-align: text-bottom; color: #fff;"></i> <strong>Ghost Power-up:</strong> Grants temporary phase-shifting. You can safely pass through walls and your own tail without dying!</li>
+        <li><i data-lucide="timer" style="width: 16px; vertical-align: text-bottom; color: var(--accent-lime);"></i> <strong>Slow-Mo Power-up:</strong> Drastically reduces game speed for precision maneuvering in tight spaces.</li>
+      </ul>
+
+      <h3 style="color: var(--accent-purple); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="menu" style="width: 18px; vertical-align: bottom;"></i> UI Guide</h3>
+      <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6;">
+        <li><i data-lucide="trophy" style="width: 14px; vertical-align: middle;"></i> <strong>Achievements:</strong> View your unlocked trophies and milestones.</li>
+        <li><i data-lucide="book-open" style="width: 14px; vertical-align: middle;"></i> <strong>Snake Whispering:</strong> This help guide.</li>
+        <li><i data-lucide="palette" style="width: 14px; vertical-align: middle;"></i> <strong>Theme:</strong> Swap between Modern Glass, Retro Gameboy, and Classic Nokia modes.</li>
+        <li><i data-lucide="music" style="width: 14px; vertical-align: middle;"></i> <strong>Music:</strong> Toggle the dynamic procedural synth BGM.</li>
+        <li><i data-lucide="volume-2" style="width: 14px; vertical-align: middle;"></i> <strong>Mute:</strong> Instantly mute all game sounds.</li>
+      </ul>
+      
+      <h3 style="color: var(--accent-lime); margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 5px;"><i data-lucide="gauge" style="width: 18px; vertical-align: bottom;"></i> Controls</h3>
+      <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6; font-size: 0.9rem;">
+        <li><strong>Steer:</strong> WASD / Arrow Keys — or on touch screens, tap either side of your snake's path, or swipe anywhere on the board.</li>
+        <li><strong>Surge:</strong> SPACE, or the <i data-lucide="zap" style="width: 14px; vertical-align: middle; color: var(--accent-magenta);"></i> button on mobile (when the meter is full).</li>
+        <li><strong>Pause:</strong> P or ESC. <strong>Rewind:</strong> R at the crash prompt. Any key skips the countdown.</li>
+      </ul>
+
+      <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Use the settings in the sidebar (or mobile menu) to adjust master volume, change difficulty, and pick your snake skin!</p>
+
+      <button class="btn-primary" id="btn-close-howto" style="width: 100%;">Got it!</button>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
@@ -393,13 +400,13 @@
     <button id="btn-update-reload" class="btn-primary" style="padding: 6px 12px; font-size: 0.9rem;">Refresh</button>
   </div>
 
-  <script src="js/audio.js?v=9"></script>
-  <script src="js/storage.js?v=9"></script>
-  <script src="js/snake.js?v=9"></script>
-  <script src="js/aiSnake.js?v=9"></script>
-  <script src="js/game.js?v=9"></script>
-  <script src="js/cardGenerator.js?v=9"></script>
-  <script src="js/ui.js?v=9"></script>
+  <script src="js/audio.js?v=10"></script>
+  <script src="js/storage.js?v=10"></script>
+  <script src="js/snake.js?v=10"></script>
+  <script src="js/aiSnake.js?v=10"></script>
+  <script src="js/game.js?v=10"></script>
+  <script src="js/cardGenerator.js?v=10"></script>
+  <script src="js/ui.js?v=10"></script>
 
   <!-- Offline support. Registered after load so it never competes with the
        game's own assets for bandwidth on a first visit. -->

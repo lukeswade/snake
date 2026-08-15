@@ -71,12 +71,30 @@ document.addEventListener('DOMContentLoaded', () => {
     leaderboardModal?.classList.remove('active');
   }
 
-  /* Open a modal over a live game without killing the run: pause first. */
+  /* Open a modal over a live game without killing the run: pause first.
+     Also retracts the mobile drawer — leaving it open stacked two competing
+     panels on top of each other. */
   function openModal(modal) {
     if (game.isRunning && !game.isPaused && !countdownActive) togglePause();
     closeAllModals();
+    document.querySelector('.sidebar-panel')?.classList.remove('open');
     modal?.classList.add('active');
   }
+
+  /* The mobile drawer is viewport-fixed, so it needs the header's real
+     on-screen bottom edge — that already accounts for safe-area insets, the
+     iOS URL bar and any wrapping, which a hardcoded offset cannot. */
+  function syncDrawerTop() {
+    const header = document.querySelector('header');
+    if (!header) return;
+    const bottom = header.getBoundingClientRect().bottom;
+    document.documentElement.style.setProperty('--drawer-top', `${Math.round(bottom + 12)}px`);
+  }
+  syncDrawerTop();
+  window.addEventListener('resize', syncDrawerTop);
+  window.addEventListener('orientationchange', () => setTimeout(syncDrawerTop, 150));
+  // iOS collapses/expands the URL bar on scroll, which moves the header
+  window.visualViewport?.addEventListener('resize', syncDrawerTop);
 
   // Apply Stored Theme & Difficulty
   const currentTheme = storage.getTheme();

@@ -303,7 +303,12 @@
 
 html, body {
   width: 100%;
-  height: 100%;
+  /* dvh tracks the *visible* viewport. On iOS Safari 100vh is the large
+     viewport (URL bar hidden), so a 100vh layout is taller than the screen
+     while the URL bar is up — and body centring then pushes the header
+     off the top. The vh line is the fallback for browsers without dvh. */
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background-color: var(--bg-primary);
   color: var(--text-main);
@@ -426,10 +431,16 @@ button {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  /* Inset padding keeps the header clear of the Dynamic Island and the
+     bottom row clear of the home indicator once viewport-fit=cover is on. */
+  padding: calc(20px + env(safe-area-inset-top, 0px))
+           calc(20px + env(safe-area-inset-right, 0px))
+           calc(20px + env(safe-area-inset-bottom, 0px))
+           calc(20px + env(safe-area-inset-left, 0px));
   gap: 20px;
 }
 
@@ -830,6 +841,29 @@ main {
   pointer-events: all;
 }
 
+/* ==========================================================================
+   MENU MODALS (nav-bar entry points) — layering
+   These three were absolutely positioned inside .game-viewport, which is
+   overflow:hidden, so a tall modal was clipped to a slice of the board; and
+   at z-index 20 they rendered *beneath* the mobile drawer (z-index 200).
+   Promoting them to viewport-fixed above every other layer fixes both.
+
+   Layer order: header 100 < drawer 200 < menu modals 300 < toasts 2000+
+   ========================================================================== */
+#howto-modal,
+#achievements-modal,
+#leaderboard-modal {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  height: auto;
+  z-index: 300;
+  padding: calc(24px + env(safe-area-inset-top, 0px))
+           calc(24px + env(safe-area-inset-right, 0px))
+           calc(24px + env(safe-area-inset-bottom, 0px))
+           calc(24px + env(safe-area-inset-left, 0px));
+}
+
 .overlay-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-glass);
@@ -1010,16 +1044,27 @@ main {
     display: flex;
   }
   
+  /* Drawer was absolute inside <main> with top:80px measured from main but
+     height:calc(100vh - 120px) measured from the viewport — the two origins
+     don't match, so the panel ran well past the bottom of the screen and the
+     last control (View Leaderboard) sat under the home indicator, untappable.
+     Fixed positioning with both top and bottom pinned to the viewport removes
+     the mismatch entirely; --drawer-top is measured from the header in JS. */
   .sidebar-panel {
-    position: absolute;
-    top: 80px; /* Below header */
-    right: 20px;
-    height: calc(100vh - 120px);
+    position: fixed;
+    top: var(--drawer-top, 100px);
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    height: auto;
+    max-height: none;
+    width: min(320px, calc(100vw - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
     z-index: 200;
-    transform: translateX(120%);
+    transform: translateX(calc(100% + 24px));
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     background: var(--bg-primary); /* Less transparency for legibility */
     box-shadow: -10px 0 40px rgba(0, 0, 0, 0.8);
+    -webkit-overflow-scrolling: touch; /* momentum scroll inside the drawer */
+    overscroll-behavior: contain;
   }
 
   .sidebar-panel.open {
