@@ -365,23 +365,30 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ==========================================================================
      UNIFIED TOUCH / POINTER STEERING (tap + swipe on the board)
 
-     One pointer pipeline instead of the old separate tap (pointer events) and
-     swipe (touch events) systems, which double-fired on the same gesture.
+     Tuned for responsiveness on fast tick rates (Hard = 100ms):
 
-     Tap: a press that moves less than TAP_SLOP. Decided on pointerup so a
-     swipe never begins with a spurious turn. The turn axis is judged against
-     the direction the snake is ABOUT to travel (last queued input), not its
-     current heading — otherwise two quick taps inside one movement tick read
-     as the same axis and the second is dropped, which feels like a cooldown
-     between taps.
-
-     Swipe: every SWIPE_STEP px of travel issues a turn and re-anchors, so a
-     single continuous drag can chain corners.
+     · Taps commit EARLY — TAP_COMMIT_MS after touch-down if the finger has
+       stayed put, instead of waiting for the lift. A fingertip rests on the
+       glass for 60–120ms, so up-only commits cost about a full Hard tick of
+       latency. Sub-40ms taps still commit on the lift.
+     · No dead zone — anything that never reaches SWIPE_STEP is a tap on
+       release, however wobbly. (Previously a 15–23px thumb wobble fell
+       between the tap slop and the swipe threshold and steered NOTHING.)
+     · Per-pointer state in a Map — alternating thumbs overlap contact
+       windows constantly; a single shared record meant one finger's lift
+       wiped the other's tracking and ate the input.
+     · The whole board frame steers, not just the canvas, so taps in the
+       gutter around the grid don't die.
+     · The turn axis is judged against the direction the snake is ABOUT to
+       travel (last queued input) so rapid taps chain like keyboard input;
+       swipes issue a turn every SWIPE_STEP px and re-anchor to chain corners.
      ========================================================================== */
   const gameCanvas = document.getElementById('game-canvas');
-  const TAP_SLOP = 14;
-  const SWIPE_STEP = 24;
-  let ptr = null; // { id, startX, startY, anchorX, anchorY, swiped }
+  const viewport = document.getElementById('game-viewport');
+  const TAP_SLOP = 14;        // max drift for the EARLY commit — a moving finger is a swipe
+  const SWIPE_STEP = 24;      // px of travel per issued swipe turn
+  const TAP_COMMIT_MS = 40;   // stationary this long = commit the tap while still pressed
+  const pointers = new Map(); // pointerId -> gesture record
 
   const steerable = () => game.isRunning && !game.isPaused && game.snake;
 
@@ -394,40 +401,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Small burst where the player touched, so steering feels acknowledged
   const tapFeedback = (clientX, clientY) => {
     const rect = gameCanvas.getBoundingClientRect();
-    game.snake.spawnParticles(clientX - rect.left, clientY - rect.top, '#00f0ff', 4, 2.5);
+    game.snake.spawnParticles(clientX - rect.left, clientY - rect.top, '#00f0ff', 5, 3);
+    navigator.vibrate?.(8); // no-op on iOS, nice on Android
   };
 
-  gameCanvas?.addEventListener('pointerdown', (e) => {
-    ptr = { id: e.pointerId, startX: e.clientX, startY: e.clientY, anchorX: e.clientX, anchorY: e.clientY, swiped: false };
-    // Keep receiving moves even if the finger drifts off the board mid-swipe
-    try { gameCanvas.setPointerCapture(e.pointerId); } catch (_) {}
-  });
-
-  gameCanvas?.addEventListener('pointermove', (e) => {
-    if (!ptr || e.pointerId !== ptr.id || !steerable()) return;
-    const dx = e.clientX - ptr.anchorX;
-    const dy = e.clientY - ptr.anchorY;
-    if (Math.abs(dx) < SWIPE_STEP && Math.abs(dy) < SWIPE_STEP) return;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      game.snake.setDirection(dx > 0 ? 1 : -1, 0);
-    } else {
-      game.snake.setDirection(0, dy > 0 ? 1 : -1);
-    }
-    ptr.anchorX = e.clientX;
-    ptr.anchorY = e.clientY;
-    ptr.swiped = true;
-  });
-
-  gameCanvas?.addEventListener('pointerup', (e) => {
-    const p = ptr;
-    ptr = null;
-    if (!p || e.pointerId !== p.id || p.swiped) return;
-    if (Math.abs(e.clientX - p.startX) > TAP_SLOP || Math.abs(e.clientY - p.startY) > TAP_SLOP) return;
+  function commitTap(rec) {
+    if (rec.committed || rec.swiped) return;
+    rec.committed = true;
     if (!steerable()) return;
 
     const rect = gameCanvas.getBoundingClientRect();
-    const tapX = e.clientX - rect.left;
-    const tapY = e.clientY - rect.top;
+    const tapX = rec.startX - rect.left;
+    const tapY = rec.startY - rect.top;
     const head = game.snake.segments[0];
     const headX = (head.x + 0.5) * game.cellSize;
     const headY = (head.y + 0.5) * game.cellSize;
@@ -440,15 +425,76 @@ document.addEventListener('DOMContentLoaded', () => {
       // Will be moving vertically: tap left or right of the head to turn
       game.snake.setDirection(tapX < headX ? -1 : 1, 0);
     }
-    if (game.snake.inputQueue.length > before) tapFeedback(e.clientX, e.clientY);
+    if (game.snake.inputQueue.length > before) tapFeedback(rec.startX, rec.startY);
+  }
+
+  function dropPointer(id) {
+    const rec = pointers.get(id);
+    if (!rec) return null;
+    clearTimeout(rec.timer);
+    pointers.delete(id);
+    return rec;
+  }
+
+  viewport?.addEventListener('pointerdown', (e) => {
+    // Buttons and active overlays keep their own semantics
+    if (e.target.closest('button') || e.target.closest('.overlay-screen')) return;
+    const rec = {
+      id: e.pointerId,
+      startX: e.clientX, startY: e.clientY,
+      anchorX: e.clientX, anchorY: e.clientY,
+      swiped: false, committed: false, timer: 0
+    };
+    rec.timer = setTimeout(() => {
+      // Still pressed and still (roughly) where it landed: that's a tap
+      if (pointers.get(e.pointerId) === rec && !rec.swiped) commitTap(rec);
+    }, TAP_COMMIT_MS);
+    pointers.set(e.pointerId, rec);
+    // Keep receiving moves even if the finger drifts off the board mid-swipe
+    try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
   });
 
-  gameCanvas?.addEventListener('pointercancel', () => { ptr = null; });
+  viewport?.addEventListener('pointermove', (e) => {
+    const rec = pointers.get(e.pointerId);
+    if (!rec) return;
+
+    // Drifting past the slop before the early-commit fires means this press
+    // is a swipe in the making — cancel the pending tap, let move logic run.
+    if (!rec.committed && !rec.swiped) {
+      if (Math.abs(e.clientX - rec.startX) > TAP_SLOP || Math.abs(e.clientY - rec.startY) > TAP_SLOP) {
+        clearTimeout(rec.timer);
+      }
+    }
+
+    if (!steerable()) return;
+    const dx = e.clientX - rec.anchorX;
+    const dy = e.clientY - rec.anchorY;
+    if (Math.abs(dx) < SWIPE_STEP && Math.abs(dy) < SWIPE_STEP) return;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      game.snake.setDirection(dx > 0 ? 1 : -1, 0);
+    } else {
+      game.snake.setDirection(0, dy > 0 ? 1 : -1);
+    }
+    rec.anchorX = e.clientX;
+    rec.anchorY = e.clientY;
+    rec.swiped = true;
+  });
+
+  viewport?.addEventListener('pointerup', (e) => {
+    const rec = dropPointer(e.pointerId);
+    if (!rec || rec.swiped || rec.committed) return;
+    // Quick release before the early commit: still a tap, and any wobble
+    // short of an actual swipe counts — no dead zone between tap and swipe.
+    if (Math.abs(e.clientX - rec.startX) < SWIPE_STEP && Math.abs(e.clientY - rec.startY) < SWIPE_STEP) {
+      commitTap(rec);
+    }
+  });
+
+  viewport?.addEventListener('pointercancel', (e) => { dropPointer(e.pointerId); });
 
   btnSurgeTouch?.addEventListener('click', () => { game.triggerSurge(); });
 
   // Tap / click anywhere on the board to skip the count-in
-  const viewport = document.getElementById('game-viewport');
   viewport?.addEventListener('click', (e) => {
     if (!countdownActive) return;
     if (e.target.closest('.overlay-screen') || e.target.closest('button')) return;

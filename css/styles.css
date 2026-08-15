@@ -561,6 +561,13 @@ main {
 .game-viewport {
   flex: 1;
   position: relative;
+  /* The whole board frame is a steering surface: stop the browser from
+     claiming its gestures for scroll/zoom (which would pointercancel
+     mid-swipe) and from popping iOS callouts on press-and-hold. The menu
+     modals scroll fine — they live outside this element. */
+  touch-action: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   background: var(--bg-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
