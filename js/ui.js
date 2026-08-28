@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // World-record teaser on the start screen — a target to chase before the
   // first key is pressed. Fails silently offline.
-  fetch('/api/leaderboard?mode=surge')
+  fetch(`${window.API_BASE || ''}/api/leaderboard?mode=surge`)
     .then(r => r.ok ? r.json() : null)
     .then(data => {
       const top = data?.entries?.[0];
@@ -759,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchGlobal(mode, force = false) {
     if (!force && globalCache[mode]) return globalCache[mode];
-    const res = await fetch(`/api/leaderboard?mode=${mode}`);
+    const res = await fetch(`${window.API_BASE || ''}/api/leaderboard?mode=${mode}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     globalCache[mode] = data.entries || [];
@@ -976,7 +976,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastRun = null;
 
   async function submitGlobal(run, name) {
-    const res = await fetch('/api/leaderboard', {
+    const res = await fetch(`${window.API_BASE || ''}/api/leaderboard`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: run.mode, score: run.score, name })

@@ -95,10 +95,31 @@ class StatCardGenerator {
     return canvas.toDataURL('image/png');
   }
 
-  static downloadCard(stats) {
+  static async downloadCard(stats) {
     const dataUrl = this.generateCard(stats);
+    const filename = `SnakeSurge_Score_${stats.score}.png`;
+
+    // iOS shell: <a download> is inert in WKWebView — hand the image to the
+    // native share sheet instead (defined in native.js, absent on the web).
+    if (window.nativeShareImage && await window.nativeShareImage(dataUrl, filename)) return;
+
+    // Mobile web: the OS share sheet beats a silent download into a folder
+    if (navigator.canShare) {
+      try {
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], filename, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file] });
+          return;
+        }
+      } catch (e) {
+        if (String(e).includes('AbortError')) return; // user closed the sheet
+        // fall through to plain download
+      }
+    }
+
     const link = document.createElement('a');
-    link.download = `SnakeSurge_Score_${stats.score}.png`;
+    link.download = filename;
     link.href = dataUrl;
     link.click();
   }

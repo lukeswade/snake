@@ -36,8 +36,9 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="css/styles.css?v=11">
-  <script src="js/icons.js?v=11"></script>
+  <link rel="stylesheet" href="css/styles.css?v=12">
+  <script src="js/native.js?v=12"></script>
+  <script src="js/icons.js?v=12"></script>
 </head>
 <body>
 
@@ -386,6 +387,8 @@
 
       <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Use the settings in the sidebar (or mobile menu) to adjust master volume, change difficulty, and pick your snake skin!</p>
 
+      <p style="text-align: center; font-size: 0.75rem; margin-bottom: 15px;"><a href="privacy.html" style="color: var(--text-muted);">Privacy policy</a></p>
+
       <button class="btn-primary" id="btn-close-howto" style="width: 100%;">Got it!</button>
     </div>
   </div>
@@ -400,18 +403,21 @@
     <button id="btn-update-reload" class="btn-primary" style="padding: 6px 12px; font-size: 0.9rem;">Refresh</button>
   </div>
 
-  <script src="js/audio.js?v=11"></script>
-  <script src="js/storage.js?v=11"></script>
-  <script src="js/snake.js?v=11"></script>
-  <script src="js/aiSnake.js?v=11"></script>
-  <script src="js/game.js?v=11"></script>
-  <script src="js/cardGenerator.js?v=11"></script>
-  <script src="js/ui.js?v=11"></script>
+  <script src="js/audio.js?v=12"></script>
+  <script src="js/storage.js?v=12"></script>
+  <script src="js/snake.js?v=12"></script>
+  <script src="js/aiSnake.js?v=12"></script>
+  <script src="js/game.js?v=12"></script>
+  <script src="js/cardGenerator.js?v=12"></script>
+  <script src="js/ui.js?v=12"></script>
 
   <!-- Offline support. Registered after load so it never competes with the
        game's own assets for bandwidth on a first visit. -->
   <script>
-    if ('serviceWorker' in navigator) {
+    // The iOS shell IS the cache — a service worker inside it is pure
+    // staleness risk, and its update toast would point at a version the
+    // App Store build doesn't have.
+    if ('serviceWorker' in navigator && !window.NATIVE_SHELL) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').then(reg => {
           reg.addEventListener('updatefound', () => {
