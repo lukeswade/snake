@@ -1,0 +1,22 @@
+{
+  "name": "snake-surge-native",
+  "private": true,
+  "version": "1.0.0",
+  "description": "iOS App Store shell for Snake Surge. The game lives one directory up; build-www.sh copies the shipping web bundle into www/ so the app is fully self-contained offline.",
+  "scripts": {
+    "www": "bash build-www.sh",
+    "sync": "bash build-www.sh && npx cap sync ios",
+    "open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/filesystem": "^7.0.0",
+    "@capacitor/haptics": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/share": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}

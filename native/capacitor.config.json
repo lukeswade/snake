@@ -1,0 +1,13 @@
+{
+  "appId": "net.lukewade.snakesurge",
+  "appName": "Snake Surge",
+  "webDir": "www",
+  "server": {
+    "iosScheme": "https",
+    "hostname": "localhost"
+  },
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0a0c16"
+  }
+}
