@@ -18,7 +18,7 @@ Snake Surge
 Merge, surge & rewind death
 ```
 
-**Category:** Primary **Games → Arcade** · Secondary **Games → Casual**
+**Category:** **Games** with subcategories **Action + Casual** (ASC has no "Arcade" subgenre)
 
 **Content rights:** Contains no third-party content.
 
@@ -97,7 +97,7 @@ segments and rewinding your own death.
 ```
 
 **Sign-in required:** No (UNCHECK it — defaults on) · **Demo account:** n/a
-**Contact:** Luke Wade · lukeswade@gmail.com
+**Contact:** Luke Wade · lukeswade@gmail.com · 2146420265 (as entered for the other apps)
 
 ---
 
@@ -116,11 +116,13 @@ self-generated player ID; the nickname + score is everything.)
 
 ## Screenshots
 
-iPhone 6.9" (1290×2796): `native/store/shot-1.png … shot-5.png`
+iPhone 6.5"/6.9" (1284×2778): `native/store/shot-1.png … shot-5.png`
 iPad 13" (2064×2752): `native/store/ipad-shot-1.png … ipad-shot-5.png`
 
 Order: 3 (CRASH IMMINENT — the hook) → 2 (live gameplay) → 4 (surge/fever)
 → 1 (start screen) → 5 (Nokia theme).
+iPhone shots are 1284×2778 — the size the ASC drop zone actually accepts
+(it rejected 1290×2796 for this app record).
 
 ---
 
@@ -129,13 +131,13 @@ Order: 3 (CRASH IMMINENT — the hook) → 2 (live gameplay) → 4 (surge/fever)
 - [x] Bundle ID registered (net.lukewade.snakesurge)
 - [x] App record created (SKU snakesurge-ios-001, Full Access, en-US)
 - [x] Build 1.0 (1) uploaded via xcodebuild (ITSAppUsesNonExemptEncryption=false, so no compliance prompt)
-- [ ] Build attached to version 1.0 (do after processing completes)
-- [ ] Listing copy + screenshots entered (see above)
-- [ ] Age rating questionnaire saved (all None/No)
-- [ ] Privacy label published (User Content → nickname, App Functionality, not linked, no tracking)
-- [ ] "Sign-in required" UNCHECKED in App Review Information
-- [ ] Manual release selected
-- [ ] Subtitle set on **App Information** (not the version page)
+- [x] Build 1.0 (1) attached to version 1.0
+- [x] Listing copy + screenshots entered (5 iPhone + 5 iPad)
+- [x] Age rating questionnaire saved — calculated 4+
+- [x] Privacy label PUBLISHED (Gameplay Content + Other User Content; App Functionality; not linked; no tracking) · policy URL set
+- [x] "Sign-in required" UNCHECKED · review notes + contact info saved
+- [x] Manual release selected · price Free (175 regions) · availability all countries · Apple Silicon ON
+- [x] Subtitle, category (Games → Action + Casual), content rights set on App Information
 - [ ] DO NOT press "Submit to App Review" — Luke does that
 - [ ] Trader status (EU / DSA) — required for EU availability (same open item as the other two apps)
 
