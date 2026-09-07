@@ -1,0 +1,57 @@
+Snake Surge is a free, offline, single-player arcade snake game. Rated 4+.
+
+NO ACCOUNTS / NO PURCHASES / NO PERMISSIONS
+No sign-in, registration or account deletion — nothing is gated. No in-app
+purchases, subscriptions or ads. The app requests no permissions at all: no
+location, contacts, camera, microphone, photos, notifications or App
+Tracking Transparency. No IDFA, no tracking, no analytics, no third-party SDKs.
+
+WHAT IT IS
+Classic snake with two twists: MERGE (three matching body segments fuse into
+one higher-tier segment) and CHRONO-SURGE (crash with 50%+ surge banked and
+you may spend it to rewind a few seconds and continue instead of dying).
+Modes: Merge & Surge, Classic Survival, and a 60-second PvP Blitz against two
+computer-controlled snakes. Audience: general, all ages.
+
+HOW TO TEST (no credentials or sample files needed)
+- Tap PLAY NOW; a 3-2-1 countdown begins the run.
+- Steer: tap either side of the snake's path, or swipe. Keyboard: WASD/arrows.
+- SURGE: at 100% meter tap the lightning button (bottom-right) or press Space.
+- CHRONO-SURGE: crash with 50%+ surge; tap REVERSE TIME at the prompt.
+- Menu (hamburger, top-right) holds modes, difficulty, skins, volume and the
+  leaderboard. The book icon opens the full in-app rules.
+- The whole game is bundled in the binary; please feel free to test in
+  airplane mode.
+
+EXTERNAL SERVICES
+None required to play. The only network call is an optional global high-score
+leaderboard on our own Cloudflare infrastructure (Pages Functions + Workers
+KV), first-party and developer-operated. A submission sends exactly: the
+display name the player types, the score, and the date. No identifiers, no
+account, no personal data. No auth providers, payment processors or AI
+services are used.
+
+USER-GENERATED CONTENT AND MODERATION
+The app's only UGC is that optional 16-character leaderboard display name.
+- Restricted to letters, digits, spaces and _ - . at 16 characters.
+- A server-side blocklist rejects profanity, slurs, hate terms and self-harm
+  references at submission, so objectionable names are never stored or shown.
+  It normalises case, separators and leetspeak to catch evasion.
+- The leaderboard screen has a "Report a name" link (emails the developer).
+- Any entry is removed on request; stated in the privacy policy at
+  https://snake.lukewade.net/privacy
+- There is no user-to-user interaction anywhere in the app — no messaging,
+  chat, profiles, follows or comments — so there is no user to block.
+
+REGIONAL DIFFERENCES
+None. Identical in all regions. No geolocation, no region-gated content, free
+everywhere, English-only, one shared worldwide leaderboard.
+
+REGULATED INDUSTRY / THIRD-PARTY MATERIAL
+Not applicable. All content is original and first-party, including
+procedurally synthesised audio (Web Audio API — no audio files). Bundled
+fonts are SIL Open Font License; the Lucide icon set is MIT.
+
+TESTED ON
+iPhone 16 Pro (physical, iOS 26); iPhone 17 Pro Simulator (iOS 26.5); iPad 13"
+Simulator (iPadOS 26.5). Portrait and landscape, and offline in airplane mode.
