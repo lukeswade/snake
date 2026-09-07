@@ -981,7 +981,15 @@ document.addEventListener('DOMContentLoaded', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: run.mode, score: run.score, name })
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      // 422 is the name moderation filter — show its reason to the player
+      // rather than a generic network failure.
+      let reason = null;
+      try { reason = (await res.json()).error; } catch (_) {}
+      const err = new Error(reason || `HTTP ${res.status}`);
+      err.userMessage = res.status === 422 ? reason : null;
+      throw err;
+    }
     return res.json();
   }
 
@@ -1042,8 +1050,9 @@ document.addEventListener('DOMContentLoaded', () => {
       submitBox.style.display = 'none';
       showGlobalRank(result);
       audio.playAchievement();
-    } catch {
-      showToast('⚠️ Could not reach the global board');
+    } catch (err) {
+      showToast(err.userMessage ? `⚠️ ${err.userMessage}` : '⚠️ Could not reach the global board');
+      if (err.userMessage) nameInput?.focus();
     } finally {
       btnSubmitGlobal.disabled = false;
     }
