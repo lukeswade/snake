@@ -1,71 +1,72 @@
-# Item 1: the screen recording (physical device — Luke must capture this)
+# Item 1: the screen recording (physical device)
 
-Apple requires a recording **from a real iPhone**, not the simulator. Build
-1.0 (1) is already uploaded, so the fastest route onto your iPhone 16 Pro is
-TestFlight.
+## Status: take 1 (IMG_6736 / ScreenRecording 09-07 02-03) needs a re-shoot
 
-## Get the build on your phone
+The take is technically perfect — iPhone 16 Pro at native 1206×2622, 58s,
+starts from the home screen. Gameplay, the menu, mode switching and game-over
+all read clearly.
 
-1. App Store Connect → Snake Surge → **TestFlight**.
-2. If build 1.0 (1) shows "Missing Compliance", click it and answer the
-   encryption question — it should not appear, because Info.plist already
-   sets `ITSAppUsesNonExemptEncryption = false`.
-3. **Internal Testing** → create a group (e.g. "Me") → add yourself
-   (lukeswade@gmail.com) → add build 1.0 (1).
-4. Install TestFlight on the iPhone, accept the invite email, install
-   Snake Surge.
+But an OCR pass over all 59 seconds found **zero frames** containing the three
+screens Apple's letter explicitly asks for:
 
-## Record it
+| Required by Apple | In take 1? |
+|---|---|
+| User-generated content entry (the display-name box + "Go Global") | **No** |
+| Content reporting mechanism ("Report a name" on the leaderboard) | **No** |
+| The leaderboard itself (Global / My Runs) | **No** — the drawer scrolled past "View Leaderboard" without tapping it |
+| Chrono-Surge rewind ("CRASH IMMINENT" → "REVERSE TIME") | **No** |
+| Launch from home screen, gameplay, menu, game over | Yes |
 
-Add the Screen Recording button to Control Centre if it isn't there
-(Settings → Control Centre → Screen Recording). Then swipe down, tap the
-record button, wait for the 3-2-1, and **launch the app from the home
-screen** — Apple asks that the recording begin with the launch.
+The first two are the ones that matter: Apple asked to see UGC flows *and*
+their reporting/blocking mechanisms, and the app has both.
 
-Target length: **60–90 seconds**. Keep it continuous; don't edit it.
+### Why the name box never appeared
 
-## Shot list — hit these in order
+Your phone already has a saved display name from earlier testing, so scores
+auto-submit silently (that's the "GLOBAL #1" badge on the game-over card) and
+the input is skipped by design. **Delete the app and reinstall it from
+TestFlight before recording** — that clears the app container's local storage
+and restores the first-run name prompt.
 
-1. **Launch from the home screen.** Let the splash and start screen appear.
-   (The start screen shows the world-record line — nice to have on camera.)
-2. **Tap PLAY NOW** and let the 3-2-1 countdown run.
-3. **Steer with taps** — tap either side of the snake's path a few times so
-   the reviewer sees the touch control working. Then **swipe** once or twice.
-4. **Eat several food items** so the score, combo and surge meter visibly
-   climb. Grab a power-up if one appears (the buff pill shows in the HUD).
-5. **Trigger a SURGE** — when the meter hits 100%, tap the lightning button
-   bottom-right. The snake glows and phases.
-6. **Crash on purpose while holding 50%+ surge** so the "CRASH IMMINENT"
-   prompt appears, then **tap REVERSE TIME**. This is the app's signature
-   mechanic and the single most important thing to show.
-7. **Crash again and let it end.** On the game-over card, **type a display
-   name and tap "Go Global"** — this is the app's only user-generated
-   content, and Apple asked to see UGC flows. Show the global rank badge
-   that appears.
-8. **Open the menu** (hamburger, top-right) and **tap View Leaderboard**.
-   Show the Global / My Runs tabs and — importantly — the **"Report a name"**
-   link at the bottom, which answers Apple's content-reporting question.
-9. **Tap the book icon** (Snake Whispering) and scroll the rules briefly.
-10. Optional if you still have room: switch the theme with the palette icon.
+> Deliberately *not* adding an in-app "change name" button for this round:
+> that would require uploading build 2, and the recording must show the
+> binary actually under review (1.0 build 1). Worth adding afterwards.
 
-Stop the recording. Trim only the dead air at the very start/end if needed.
+---
 
-## What NOT to worry about showing
+## Take 2 — the short version (~60s)
 
-There is nothing else to demonstrate: no login, no purchase, no subscription,
-no permission prompt. If a reviewer expects one of those, its absence is the
-answer — which is exactly what the written reply says.
+Delete + reinstall from TestFlight first. Stay in **Merge & Surge** the whole
+time (Classic has no surge and no rewind by design, so neither beat can happen
+there — that's why take 1 couldn't show them after the mode switch).
+
+1. **Launch from the home screen.** Let the start screen appear.
+2. **PLAY NOW**, let the 3-2-1 run.
+3. **Steer with a few taps, then one swipe.** Eat 4–6 food items so the score
+   and the SURGE POWER meter climb.
+4. **Trigger a surge** once the meter is full: tap the ⚡ button, bottom-right.
+5. **THE REWIND — the important one.** Keep eating until the surge meter is at
+   least half full, then **crash into a wall on purpose**. The cyan
+   "CRASH IMMINENT!" prompt appears → **tap REVERSE TIME** and keep playing.
+6. **Crash again and let it end.**
+7. **THE UGC FLOW — the other important one.** On the game-over card, the
+   "Your name" box is now there (post-reinstall). **Type a name and tap
+   "Go Global".** Let the 🌍 GLOBAL badge appear.
+8. **Open the menu** (☰ top-right), scroll to **View Leaderboard**, and
+   **tap it**. Show the Global / My Runs tabs and — do not skip this —
+   the **"Report a name"** line at the bottom of the modal.
+9. Optional if there's room: the 📖 book icon opens the in-app rules.
+
+Steps 5, 7 and 8 are the whole reason for a second take. Everything else was
+already fine in take 1.
 
 ## Attach and reply
 
-1. App Store Connect → Snake Surge → **App Review → Messages** (Resolution
-   Centre). Paste the reply from `REVIEW-REPLY.md` and attach the video.
-2. Also paste `REVIEW-NOTES.txt` into **App Review Information → Notes** on
-   the version page — Apple explicitly asked for this "for future
-   submissions". (The full reply is 6.5k characters; Notes caps at 4000,
-   which is why REVIEW-NOTES.txt is the condensed version.)
+1. App Store Connect → Snake Surge → **App Review → Messages**. Paste
+   `REVIEW-REPLY.md` and attach the video.
+2. Paste `REVIEW-NOTES.txt` into **App Review Information → Notes**.
 3. Submit for review again.
 
-If the video is over ~500 MB, upload it to a private link (e.g. a Cloudflare
-Pages or iCloud share) and put the URL in the message instead — Apple accepts
-a link.
+Take 1 was 73 MB for 58s (HEVC). If take 2 lands much larger, say so and it
+can be transcoded to H.264 in a few seconds — smaller and maximally
+compatible with whatever the reviewer opens it in.
